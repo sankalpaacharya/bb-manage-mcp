@@ -220,7 +220,6 @@ function ServerRow({
       >
         {expanded && (
           <>
-            <span className="mcp-detail-label">Tags</span>
             <div className="mcp-detail-tags">
               {tags.length ? (
                 tags.map((tag) => (
