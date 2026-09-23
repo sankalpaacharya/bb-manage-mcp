@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
-import {
-  useConnectionChecks,
-  type ConnectionCheck,
-} from "./use-connection-checks";
+import type { ConnectionCheck } from "./status-cache";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
-  check: (id: string) => Promise<ActionResult>;
   authenticate: (id: string) => Promise<ActionResult>;
   poll: (id: string) => Promise<ActionResult>;
   cancel: (id: string) => Promise<ActionResult>;
@@ -18,17 +14,15 @@ function ServerRow({
   actions,
   hidden,
   connection,
-  onCheck,
 }: {
   server: Server;
   actions?: Actions;
   hidden: boolean;
   connection?: ConnectionCheck;
-  onCheck: (id: string) => Promise<void>;
 }) {
   const status = connection?.result;
   const [auth, setAuth] = useState<ActionResult | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!actions || auth?.state !== "waiting" || !auth.taskId) return;
@@ -54,22 +48,20 @@ function ServerRow({
       clearTimeout(timer);
     };
   }, [actions, auth?.taskId, auth?.state]);
-  const run = async (kind: "check" | "authenticate") => {
+  const run = async () => {
     if (!actions) return;
-    setBusy(kind);
+    setBusy(true);
     setError(null);
     try {
-      if (kind === "check") await onCheck(server.id);
-      else
-        setAuth(
-          auth?.state === "waiting" && auth.taskId
-            ? await actions.cancel(auth.taskId)
-            : await actions.authenticate(server.id),
-        );
+      setAuth(
+        auth?.state === "waiting" && auth.taskId
+          ? await actions.cancel(auth.taskId)
+          : await actions.authenticate(server.id),
+      );
     } catch {
       setError("Action failed. Check your host connection and try again.");
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
   const unavailable = server.state !== "configured" || !actions;
@@ -95,19 +87,8 @@ function ServerRow({
               (connection?.pending ? "Checking…" : "Not checked"))}
       </span>
       <div className="mcp-actions">
-        <button
-          disabled={unavailable || busy !== null || connection?.pending}
-          onClick={() => void run("check")}
-        >
-          {busy === "check" || connection?.pending
-            ? "Checking…"
-            : "Check status"}
-        </button>
-        <button
-          disabled={unavailable || busy !== null}
-          onClick={() => void run("authenticate")}
-        >
-          {busy === "authenticate"
+        <button disabled={unavailable || busy} onClick={() => void run()}>
+          {busy
             ? "Starting…"
             : auth?.state === "waiting"
               ? "Cancel sign-in"
@@ -145,7 +126,6 @@ export function InventoryView({
   onRefresh: () => void;
   actions?: Actions;
 }) {
-  const { checks, check } = useConnectionChecks(cachedChecks, actions?.check);
   const [harness, setHarness] = useState<Harness | null>(null);
   const entries = inventory?.servers ?? [];
   const visible = entries.filter(
@@ -206,8 +186,7 @@ export function InventoryView({
                     <ServerRow
                       key={server.id}
                       server={server}
-                      connection={checks[server.id]}
-                      onCheck={check}
+                      connection={cachedChecks?.[server.id]}
                       actions={actions}
                       hidden={!!harness && harness !== server.harness}
                     />

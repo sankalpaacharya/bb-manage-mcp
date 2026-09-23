@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { InventoryView } from "../src/inventory-view";
 import type { Inventory } from "../src/model";
 
-test("plain list filters by harness and runs its two actions", async () => {
+test("plain list filters by harness and offers re-authentication", async () => {
   const dom = new JSDOM("<!doctype html><html><body></body></html>");
   Object.defineProperty(globalThis, "window", {
     configurable: true,
@@ -65,13 +65,6 @@ test("plain list filters by harness and runs its two actions", async () => {
     const view = render(
       <InventoryView
         actions={{
-          check: async () => ({
-            state: "connected",
-            message: "Connected",
-            taskId: null,
-            url: null,
-            command: null,
-          }),
           authenticate: async () => ({
             state: "complete",
             message: "Sample sign-in complete",
@@ -98,10 +91,9 @@ test("plain list filters by harness and runs its two actions", async () => {
       within(view.getByRole("region", { name: "MCP servers" }));
     assert.equal(servers().getAllByRole("listitem").length, 2);
     const row = within(servers().getByText("docs").closest("li")!);
-    assert.equal(row.getAllByRole("button").length, 2);
+    assert.equal(row.getAllByRole("button").length, 1);
     assert.ok(row.getByText("Not checked"));
-    fireEvent.click(row.getByRole("button", { name: "Check status" }));
-    await waitFor(() => assert.ok(row.getByText("Connected")));
+    assert.equal(view.queryByRole("button", { name: "Check status" }), null);
     fireEvent.click(row.getByRole("button", { name: "Re-authenticate" }));
     await waitFor(() => assert.ok(row.getByText("Sample sign-in complete")));
     fireEvent.click(view.getByRole("button", { name: /^Codex/ }));
@@ -110,7 +102,7 @@ test("plain list filters by harness and runs its two actions", async () => {
     assert.equal(servers().getAllByRole("listitem").length, 2);
     assert.ok(
       within(servers().getByText("design").closest("li")!)
-        .getByRole("button", { name: "Check status" })
+        .getByRole("button", { name: "Re-authenticate" })
         .hasAttribute("disabled"),
     );
     fireEvent.click(view.getByRole("button", { name: "Refresh" }));

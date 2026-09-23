@@ -39,7 +39,6 @@ function InventoryPage() {
   }, [snapshot, load]);
   const actions = useMemo(
     () => ({
-      check: (serverId: string) => rpc.call("check", { serverId }),
       authenticate: (serverId: string) =>
         rpc.call("authenticate", { serverId }),
       poll: (taskId: string) => rpc.call("poll", { taskId }),
