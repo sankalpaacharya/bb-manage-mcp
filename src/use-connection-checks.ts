@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Inventory } from "./model";
+
 import type { ActionResult } from "./actions";
 export interface ConnectionCheck {
   pending: boolean;
@@ -13,9 +13,9 @@ const failed: ActionResult = {
   command: null,
 };
 
-/** Bound automatic checks so opening a large inventory does not flood the host. */
+/** Display the server cache; run a CLI check only on an explicit retry. */
 export function useConnectionChecks(
-  inventory: Inventory | null,
+  cached: Record<string, ConnectionCheck> | undefined,
   check?: (id: string) => Promise<ActionResult>,
 ) {
   const [checks, setChecks] = useState<Record<string, ConnectionCheck>>({});
@@ -42,36 +42,12 @@ export function useConnectionChecks(
     [check],
   );
   useEffect(() => {
-    const version = ++generation.current;
-    const entries =
-      inventory?.servers.filter((server) => server.state === "configured") ??
-      [];
-    setChecks(
-      check
-        ? Object.fromEntries(
-            entries.map((server) => [
-              server.id,
-              { pending: true, result: null },
-            ]),
-          )
-        : {},
-    );
-    let cursor = 0;
-    const worker = async () => {
-      while (
-        check &&
-        version === generation.current &&
-        cursor < entries.length
-      ) {
-        const server = entries[cursor++];
-        await run(server.id, version);
-      }
-    };
-    for (let i = 0; i < Math.min(3, entries.length); i++) void worker();
+    generation.current++;
+    setChecks(cached ?? {});
     return () => {
       generation.current++;
     };
-  }, [inventory, check, run]);
+  }, [cached]);
   return {
     checks,
     check: useCallback((id: string) => run(id, generation.current), [run]),

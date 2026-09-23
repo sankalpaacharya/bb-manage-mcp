@@ -77,15 +77,13 @@ function ServerRow({
     <li className="mcp-row" hidden={hidden}>
       <div className="mcp-name">
         <strong>{server.name}</strong>
-        <span title={server.source}>
-          {server.project ?? "User configuration"}
-        </span>
+        <span>{server.project ?? "User configuration"}</span>
       </div>
       <span className="mcp-row-harness">
         <HarnessIcon harness={server.harness} />
         {server.harness}
       </span>
-      <span className="mcp-status" role="status" title={status?.message}>
+      <span className="mcp-status" role="status">
         <span aria-hidden="true">
           {status?.state === "connected" ? "●" : "○"}
         </span>
@@ -93,9 +91,8 @@ function ServerRow({
           ? "Disabled"
           : server.state === "invalid"
             ? "Incomplete"
-            : connection?.pending
-              ? "Checking…"
-              : (status?.message ?? "Not checked")}
+            : (status?.message ??
+              (connection?.pending ? "Checking…" : "Not checked"))}
       </span>
       <div className="mcp-actions">
         <button
@@ -139,14 +136,16 @@ export function InventoryView({
   error,
   onRefresh,
   actions,
+  cachedChecks,
 }: {
+  cachedChecks?: Record<string, ConnectionCheck>;
   inventory: Inventory | null;
   pending: boolean;
   error: string | null;
   onRefresh: () => void;
   actions?: Actions;
 }) {
-  const { checks, check } = useConnectionChecks(inventory, actions?.check);
+  const { checks, check } = useConnectionChecks(cachedChecks, actions?.check);
   const [harness, setHarness] = useState<Harness | null>(null);
   const entries = inventory?.servers ?? [];
   const visible = entries.filter(
@@ -177,7 +176,6 @@ export function InventoryView({
               key={name}
               aria-pressed={harness === name}
               onClick={() => setHarness(harness === name ? null : name)}
-              title={`${name}: ${entries.filter((entry) => entry.harness === name).length} configured MCPs`}
             >
               <HarnessIcon harness={name} />
               <span>{name}</span>

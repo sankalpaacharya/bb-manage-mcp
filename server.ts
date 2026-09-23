@@ -1,6 +1,8 @@
 import { cliCommand, defineCli, type BbPluginApi } from "@get-bb/plugin-sdk";
 import { hostContract, rpcContract } from "./src/contract";
 
+import { StatusCache } from "./src/status-cache";
+
 export default function plugin(bb: BbPluginApi) {
   const settings = bb.settings.define({
     hostId: {
@@ -35,11 +37,51 @@ export default function plugin(bb: BbPluginApi) {
     const { hostId, projects } = await target();
     return host.call("scan", { projects }, { hostId, signal });
   }
+  const cache = new StatusCache();
+  bb.onDispose(() => {
+    cache.dispose();
+  });
+  let cacheKey = "";
+  function refreshCache() {
+    let selected: Awaited<ReturnType<typeof target>>;
+    cache.refresh(
+      async (signal) => {
+        selected = await target();
+        if (signal.aborted) throw new Error("Cancelled");
+        cacheKey = JSON.stringify(selected);
+        return host.call(
+          "scan",
+          { projects: selected.projects },
+          { hostId: selected.hostId, signal },
+        );
+      },
+      (serverId, signal) =>
+        host.call(
+          "check",
+          { serverId, projects: selected.projects },
+          { hostId: selected.hostId, signal },
+        ),
+    );
+  }
+  // Start outside the page lifecycle; reads of the cache never launch checks.
+  refreshCache();
   bb.rpc.register(rpcContract, {
+    snapshot: () => cache.snapshot(),
+    refresh: async () => {
+      await refreshCache();
+      return cache.snapshot();
+    },
     inventory: () => inventory(),
     check: async ({ serverId }) => {
       const { hostId, projects } = await target();
-      return host.call("check", { serverId, projects }, { hostId });
+      const result = await host.call(
+        "check",
+        { serverId, projects },
+        { hostId },
+      );
+      if (cacheKey === JSON.stringify({ hostId, projects }))
+        cache.update(serverId, result);
+      return result;
     },
     authenticate: async ({ serverId }) => {
       const { hostId, projects } = await target();

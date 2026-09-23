@@ -2,37 +2,41 @@ import "./src/library.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { definePluginApp, useRpc } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./src/contract";
-import type { Inventory } from "./src/model";
+import type { Snapshot } from "./src/status-cache";
 import { InventoryView } from "./src/inventory-view";
 
 function InventoryPage() {
   const rpc = useRpc<typeof rpcContract>();
-  const [inventory, setInventory] = useState<Inventory | null>(null);
-  const [pending, setPending] = useState(true);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const request = useRef(0);
-  const refresh = useCallback(async () => {
-    const current = ++request.current;
-    setPending(true);
-    setError(null);
-    try {
-      const result = await rpc.call("inventory");
-      if (current === request.current) setInventory(result);
-    } catch {
-      if (current === request.current)
-        setError(
-          "Could not scan configurations. Check the host connection and project folders in Manage MCP settings, then refresh.",
-        );
-    } finally {
-      if (current === request.current) setPending(false);
-    }
-  }, [rpc]);
+  const load = useCallback(
+    async (refresh = false) => {
+      const version = ++request.current;
+      try {
+        const next = await rpc.call(refresh ? "refresh" : "snapshot");
+        if (version === request.current) {
+          setSnapshot(next);
+          setError(next.error);
+        }
+      } catch {
+        if (version === request.current)
+          setError("Could not load connections. Try Refresh.");
+      }
+    },
+    [rpc],
+  );
   useEffect(() => {
-    void refresh();
+    void load();
     return () => {
       request.current++;
     };
-  }, [refresh]);
+  }, [load]);
+  useEffect(() => {
+    if (!snapshot?.pending) return;
+    const timer = setTimeout(() => void load(), 1000);
+    return () => clearTimeout(timer);
+  }, [snapshot, load]);
   const actions = useMemo(
     () => ({
       check: (serverId: string) => rpc.call("check", { serverId }),
@@ -46,10 +50,11 @@ function InventoryPage() {
   return (
     <InventoryView
       actions={actions}
-      inventory={inventory}
-      pending={pending}
+      cachedChecks={snapshot?.checks}
+      inventory={snapshot?.inventory ?? null}
+      pending={(!snapshot && !error) || !!snapshot?.pending}
       error={error}
-      onRefresh={() => void refresh()}
+      onRefresh={() => void load(true)}
     />
   );
 }

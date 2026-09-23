@@ -1,6 +1,6 @@
 # Manage MCP for BB
 
-A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Status checks run automatically on open and refresh, with at most three in flight. Each connection also has **Check status** and **Re-authenticate** actions.
+A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Status checks run in the background at BB plugin startup and on explicit refresh, with at most two in flight. Each connection also has **Check status** and **Re-authenticate** actions.
 
 Counts describe configuration entries, including disabled entries; they are not live connection counts.
 
@@ -75,3 +75,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for change and commit conventions.
 ## Interface preview
 
 Run `npm run preview` and open `dist/preview.html` for a self-contained, interactive preview with synthetic data and light/dark switching. It renders the production component, makes no network requests, and does not read your real configuration.
+
+Opening the page only reads cached inventory and status. Pending background results are polled without launching new CLI checks. The cache lasts until BB restarts or the plugin reloads; Refresh rescans with current settings.

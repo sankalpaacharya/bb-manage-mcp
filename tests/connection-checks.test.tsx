@@ -1,32 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { JSDOM } from "jsdom";
-import { useConnectionChecks } from "../src/use-connection-checks";
+import { StatusCache } from "../src/status-cache";
 import type { Inventory } from "../src/model";
 import type { ActionResult } from "../src/actions";
 
-test("automatic checks are bounded, tolerate failures, and restart on refresh", async () => {
-  const dom = new JSDOM("<!doctype html><html><body></body></html>");
-  for (const key of ["window", "document", "HTMLElement", "navigator"] as const)
-    Object.defineProperty(globalThis, key, {
-      configurable: true,
-      value: key === "window" ? dom.window : dom.window[key],
-    });
-  const { renderHook, act, waitFor, cleanup } =
-    await import("@testing-library/react");
+test("background cache returns immediately, bounds checks, and survives page reads", async () => {
+  const cache = new StatusCache();
   const inventory: Inventory = {
-    scannedAt: "first",
+    scannedAt: "test",
     sources: [],
     truncated: false,
-    servers: Array.from({ length: 6 }, (_, index) => ({
-      id: String(index),
-      name: String(index),
+    servers: Array.from({ length: 5 }, (_, i) => ({
+      id: String(i),
+      name: String(i),
       harness: "Codex",
       source: "/tmp/config",
       scope: "user",
       project: null,
       transport: "http",
-      state: index === 5 ? "disabled" : "configured",
+      state: i === 4 ? "disabled" : "configured",
     })),
   };
   const connected: ActionResult = {
@@ -36,56 +28,46 @@ test("automatic checks are bounded, tolerate failures, and restart on refresh", 
     url: null,
     command: null,
   };
-  const pending: Array<{
-    id: string;
-    resolve: (value: ActionResult) => void;
-    reject: () => void;
-  }> = [];
-  const check = (id: string) =>
-    new Promise<ActionResult>((resolve, reject) =>
-      pending.push({ id, resolve, reject: () => reject(new Error("offline")) }),
-    );
+  const pending: Array<(value: ActionResult) => void> = [];
+  let scans = 0;
+  const scan = async () => {
+    scans++;
+    return inventory;
+  };
+  const check = () =>
+    new Promise<ActionResult>((resolve) => pending.push(resolve));
+  const tick = () => new Promise((resolve) => setImmediate(resolve));
   try {
-    const view = renderHook(
-      ({ inventory }) => useConnectionChecks(inventory, check),
-      { initialProps: { inventory } },
-    );
-    assert.equal(pending.length, 3);
-    await act(async () => {
-      pending[0].resolve(connected);
-      pending[1].reject();
-    });
-    assert.equal(pending.length, 5);
-    assert.equal(view.result.current.checks["1"].result?.state, "unknown");
-    assert.ok(!pending.some((item) => item.id === "5"));
-    view.rerender({ inventory: { ...inventory, scannedAt: "refreshed" } });
-    assert.equal(pending.length, 8);
-    await act(async () => {
-      pending[2].resolve(connected);
-      pending[3].resolve(connected);
-      pending[4].resolve(connected);
-    });
-    assert.equal(view.result.current.checks["2"].pending, true);
-    await act(async () => {
-      pending[5].resolve(connected);
-      pending[6].resolve(connected);
-      pending[7].resolve(connected);
-    });
-    assert.equal(pending.length, 10);
-    await act(async () => {
-      pending[8].resolve(connected);
-      pending[9].resolve(connected);
-    });
-    await waitFor(() =>
-      assert.ok(
-        Object.values(view.result.current.checks).every(
-          (value) => !value.pending,
-        ),
-      ),
-    );
-    view.unmount();
+    cache.refresh(scan, check);
+    assert.equal(cache.snapshot().pending, true);
+    await tick();
+    assert.equal(pending.length, 2);
+    assert.equal(cache.snapshot().inventory?.servers.length, 5);
+    cache.snapshot();
+    cache.snapshot();
+    cache.refresh(scan, check);
+    assert.equal(scans, 1);
+    pending[0](connected);
+    pending[1](connected);
+    await tick();
+    assert.equal(pending.length, 4);
+    pending[2](connected);
+    pending[3](connected);
+    await tick();
+    assert.equal(cache.snapshot().pending, false);
+    assert.equal(Object.keys(cache.snapshot().checks).length, 4);
+    cache.snapshot();
+    assert.equal(scans, 1);
+    cache.refresh(scan, check);
+    await tick();
+    assert.equal(scans, 2);
+    assert.equal(cache.snapshot().checks["0"].result?.state, "connected");
+    cache.dispose();
+    pending[4](connected);
+    pending[5](connected);
+    await tick();
+    assert.equal(pending.length, 6);
   } finally {
-    cleanup();
-    dom.window.close();
+    cache.dispose();
   }
 });

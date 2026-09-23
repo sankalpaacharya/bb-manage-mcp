@@ -67,7 +67,18 @@ export const hostContract = defineRpcContract({
     output: inventorySchema,
   },
 });
+const snapshot = z.object({
+  inventory: inventorySchema.nullable(),
+  checks: z.record(
+    z.string(),
+    z.object({ pending: z.boolean(), result: action.nullable() }),
+  ),
+  pending: z.boolean(),
+  error: z.string().nullable(),
+});
 export const rpcContract = defineRpcContract({
+  snapshot: { input: z.null(), output: snapshot },
+  refresh: { input: z.null(), output: snapshot },
   check: { input: target, output: action },
   authenticate: { input: target, output: action },
   poll: { input: task, output: action },

@@ -99,7 +99,7 @@ test("plain list filters by harness and runs its two actions", async () => {
     assert.equal(servers().getAllByRole("listitem").length, 2);
     const row = within(servers().getByText("docs").closest("li")!);
     assert.equal(row.getAllByRole("button").length, 2);
-    await waitFor(() => assert.ok(row.getByText("Connected")));
+    assert.ok(row.getByText("Not checked"));
     fireEvent.click(row.getByRole("button", { name: "Check status" }));
     await waitFor(() => assert.ok(row.getByText("Connected")));
     fireEvent.click(row.getByRole("button", { name: "Re-authenticate" }));
