@@ -1,3 +1,4 @@
+import "./src/library.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { definePluginApp, useRpc } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./src/contract";

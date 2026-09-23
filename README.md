@@ -1,6 +1,6 @@
 # Manage MCP for BB
 
-A read-only MCP inventory for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**. Search servers across harnesses, identify their configuration files, and inspect user and project entries from one BB sidebar page.
+A read-only MCP inventory for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**. Browse a searchable library of your servers, filter by harness or configuration state, and inspect every source from one BB sidebar page. Same-named entries share a card; selecting it preserves each individual configuration in an inspector.
 
 This inventories configured servers. It does not claim that a server is connected, authenticated, trusted, or permitted by a harness.
 
@@ -44,7 +44,7 @@ Configuration references: [Claude Code](https://code.claude.com/docs/en/mcp), [C
 - Excludes commands, arguments, endpoints, environment values, authentication headers, and raw parser errors. Metadata such as server names and paths is visible to authenticated BB users.
 - Does not launch MCP processes, probe endpoints, expand variables, edit files, or persist scan results.
 - Reads at most 1 MiB per file and returns at most 250 entries with a truncation notice. Missing files are normal; unreadable or malformed files appear as scan issues.
-- Shows declarations separately, including duplicate names in different scopes. It does not merge configurations or resolve trust, approvals, inheritance, or effective permissions.
+- Groups exact matching names in the UI while keeping declarations separate in the inspector and CLI. Name grouping does not establish that endpoints or credentials match. It does not merge configurations or resolve trust, approvals, inheritance, or effective permissions.
 - Excludes plugin-bundled servers, cloud connectors, enterprise-managed settings, custom Claude configuration directories, runtime flags, and inline configuration. Project scanning uses the explicitly listed folders, without recursive discovery or parent traversal.
 
 ## Development
@@ -61,3 +61,7 @@ bb plugin install . --yes
 The server registers typed RPC and CLI handlers. The host entry owns filesystem access. `src/inventory.ts` parses and sanitizes data before it crosses the host boundary; `src/model.ts` contains browser-safe types. The UI uses BB's theme and vendored controls.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for change and commit conventions.
+
+## Interface preview
+
+Run `npm run preview` and open `dist/preview.html` for a self-contained, interactive preview with synthetic data and light/dark switching. It renders the production component, makes no network requests, and does not read your real configuration.

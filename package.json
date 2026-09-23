@@ -45,6 +45,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",
+    "esbuild": "^0.28.2",
     "hono": "^4.11.9",
     "jsdom": "^28.1.0",
     "prettier": "^3.9.8",
@@ -59,7 +60,8 @@
     "test": "tsx --test tests/*.test.ts tests/*.test.tsx",
     "build": "bb plugin build && node --input-type=module -e \"await import('./dist/host.js')\"",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "preview": "node scripts/preview.mjs"
   },
   "repository": {
     "type": "git",

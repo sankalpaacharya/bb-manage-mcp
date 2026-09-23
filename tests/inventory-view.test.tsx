@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { InventoryView } from "../src/inventory-view";
 import type { Inventory } from "../src/model";
 
-test("dashboard filters, switches layouts, opens sources, and refreshes", async () => {
+test("library filters, opens inspector, switches layouts, and reviews sources", async () => {
   const dom = new JSDOM("<!doctype html><html><body></body></html>");
   Object.defineProperty(globalThis, "window", {
     configurable: true,
@@ -75,16 +75,23 @@ test("dashboard filters, switches layouts, opens sources, and refreshes", async 
     const servers = () =>
       within(view.getByRole("region", { name: "MCP servers" }));
     assert.equal(servers().getAllByRole("listitem").length, 2);
+    fireEvent.click(view.getByRole("button", { name: "Inspect docs" }));
+    const inspector = within(
+      view.getByRole("region", { name: "Server details" }),
+    );
+    assert.ok(inspector.getByText("/home/test/.codex/config.toml"));
+    fireEvent.click(view.getByRole("button", { name: "Close server details" }));
+    assert.equal(view.queryByRole("region", { name: "Server details" }), null);
     fireEvent.click(view.getByRole("button", { name: /^Codex/ }));
     assert.equal(servers().getAllByRole("listitem").length, 1);
     assert.ok(servers().getByText("docs"));
     fireEvent.click(view.getByRole("button", { name: /^All harnesses/ }));
-    fireEvent.change(view.getByRole("textbox", { name: "Filter MCPs" }), {
+    fireEvent.change(view.getByRole("searchbox", { name: "Filter MCPs" }), {
       target: { value: "design" },
     });
     assert.equal(servers().getAllByRole("listitem").length, 1);
     assert.ok(servers().getByText("design"));
-    fireEvent.change(view.getByRole("textbox", { name: "Filter MCPs" }), {
+    fireEvent.change(view.getByRole("searchbox", { name: "Filter MCPs" }), {
       target: { value: "" },
     });
     fireEvent.click(view.getByRole("button", { name: "List view" }));
@@ -96,7 +103,7 @@ test("dashboard filters, switches layouts, opens sources, and refreshes", async 
     );
     fireEvent.click(view.getByRole("button", { name: "Refresh inventory" }));
     assert.equal(refreshed, 1);
-    fireEvent.click(view.getByRole("button", { name: /Review 1 unreadable/ }));
+    fireEvent.click(view.getByRole("button", { name: "Review files" }));
     const sources = within(
       view.getByRole("region", { name: "Configuration sources" }),
     );
