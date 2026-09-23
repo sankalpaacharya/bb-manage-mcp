@@ -17,10 +17,16 @@ export class StatusCache {
     pending: false,
     error: null,
   };
+  private revision = 0;
   private running: Promise<void> | null = null;
   private controller = new AbortController();
   snapshot(): Snapshot {
     return structuredClone(this.value);
+  }
+  replaceInventory(inventory: Inventory) {
+    this.revision++;
+    this.value.inventory = inventory;
+    this.value.error = null;
   }
   remove(id: string) {
     if (this.value.inventory)
@@ -44,9 +50,14 @@ export class StatusCache {
     if (this.running || this.controller.signal.aborted) return;
     this.value.pending = true;
     this.value.error = null;
+    const revision = this.revision;
     this.running = (async () => {
       try {
-        const inventory = await scan(this.controller.signal);
+        const scanned = await scan(this.controller.signal);
+        const inventory =
+          revision === this.revision
+            ? scanned
+            : (this.value.inventory ?? scanned);
         if (this.controller.signal.aborted) return;
         this.value.inventory = inventory;
         const entries = inventory.servers.filter(

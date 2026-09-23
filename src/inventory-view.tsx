@@ -1,12 +1,16 @@
+import { TagPicker } from "./tag-picker";
+import { AddServerForm } from "./add-server-form";
+import type { AddInput } from "./add-contract";
 import { useEffect, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
 import type { ConnectionCheck } from "./status-cache";
 import { ServerIcon } from "./server-icon";
-import { groupByTag, mergeConnections, tagListSchema, type Tags } from "./tags";
+import { groupByTag, mergeConnections, type Tags } from "./tags";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
+  add?: (input: AddInput) => Promise<void>;
   saveTags?: (id: string, tags: string[]) => Promise<void>;
   remove?: (id: string) => Promise<void>;
   authenticate: (id: string) => Promise<ActionResult>;
@@ -18,6 +22,7 @@ function ServerRow({
   actions,
   hidden,
   connection,
+  suggestions,
   tags = [],
   variants = [],
   selectedId,
@@ -27,35 +32,12 @@ function ServerRow({
   actions?: Actions;
   hidden: boolean;
   connection?: ConnectionCheck;
+  suggestions: string[];
   tags?: string[];
   variants?: Server[];
   selectedId?: string;
   onSelect?: (id: string) => void;
 }) {
-  const [editingTags, setEditingTags] = useState(false);
-  const [tagDraft, setTagDraft] = useState("");
-  const saveTags = async () => {
-    const parsed = tagListSchema.safeParse(
-      tagDraft
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    );
-    if (!parsed.success) {
-      setError("Use up to 8 tags, with at most 32 characters each.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await actions?.saveTags?.(server.id, parsed.data);
-      setEditingTags(false);
-    } catch {
-      setError("Could not save tags. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
   const status = connection?.result;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [auth, setAuth] = useState<ActionResult | null>(null);
@@ -181,28 +163,16 @@ function ServerRow({
                           : "Status unavailable"}
       </span>
       <div className="mcp-actions">
-        <button
-          className="mcp-tag-button"
-          aria-label={`Edit tags for ${server.name}`}
-          disabled={!actions?.saveTags || busy}
-          onClick={() => {
-            setTagDraft(tags.join(", "));
-            setEditingTags(true);
-          }}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            aria-hidden="true"
-          >
-            <path d="M3 3h8l10 10-8 8L3 11Z" />
-            <circle cx="7.5" cy="7.5" r="1" />
-          </svg>
-        </button>
+        <TagPicker
+          name={server.name}
+          tags={tags}
+          suggestions={suggestions}
+          onSave={
+            actions?.saveTags
+              ? (values) => actions.saveTags!(server.id, values)
+              : undefined
+          }
+        />
         <button disabled={unavailable || busy} onClick={() => void run()}>
           {busy
             ? "Starting…"
@@ -231,35 +201,6 @@ function ServerRow({
           </svg>
         </button>
       </div>
-      {editingTags && (
-        <form
-          className="mcp-tag-editor"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void saveTags();
-          }}
-        >
-          <label>
-            Tags for {server.name}
-            <input
-              autoFocus
-              value={tagDraft}
-              onChange={(event) => setTagDraft(event.target.value)}
-              placeholder="work, development"
-              maxLength={270}
-            />
-          </label>
-          <span>Separate tags with commas</span>
-          <button disabled={busy}>Save tags</button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setEditingTags(false)}
-          >
-            Cancel
-          </button>
-        </form>
-      )}
       {confirmDelete && (
         <div
           className="mcp-message"
@@ -293,11 +234,13 @@ function ServerRow({
   );
 }
 function ConnectionRow({
+  suggestions,
   variants,
   checks,
   tags,
   actions,
 }: {
+  suggestions: string[];
   variants: Server[];
   checks?: Record<string, ConnectionCheck>;
   tags: string[];
@@ -328,6 +271,7 @@ function ConnectionRow({
       onSelect={setSelectedId}
       actions={rowActions}
       tags={tags}
+      suggestions={suggestions}
       hidden={false}
     />
   );
@@ -349,8 +293,10 @@ export function InventoryView({
   onRefresh: () => void;
   actions?: Actions;
 }) {
+  const [adding, setAdding] = useState(false);
   const [harness, setHarness] = useState<Harness | null>(null);
   const [grouped, setGrouped] = useState(false);
+  const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const variants = mergeConnections(inventory?.servers ?? []);
   const entries = variants.map((group) => group[0]);
@@ -362,6 +308,10 @@ export function InventoryView({
   );
   const visible = entries.filter(
     (entry) =>
+      [entry.name, entry.harness, ...(combinedTags[entry.id] ?? [])]
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(search.trim().toLocaleLowerCase()) &&
       (!harness || entry.harness === harness) &&
       (tagFilter === "all" ||
         (tagFilter === "untagged" && !combinedTags[entry.id]?.length) ||
@@ -384,10 +334,25 @@ export function InventoryView({
           <h1>
             MCP connections <span>{inventory ? entries.length : "—"}</span>
           </h1>
-          <button onClick={onRefresh} disabled={pending}>
-            {pending ? "Refreshing…" : "Refresh"}
-          </button>
+          <div className="mcp-header-actions">
+            <button
+              disabled={!inventory || !actions?.add}
+              onClick={() => setAdding(!adding)}
+            >
+              Add MCP
+            </button>
+            <button onClick={onRefresh} disabled={pending}>
+              {pending ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </header>
+        {adding && inventory && actions?.add && (
+          <AddServerForm
+            sources={inventory.sources}
+            onAdd={actions.add}
+            onClose={() => setAdding(false)}
+          />
+        )}
         <nav className="mcp-harnesses" aria-label="Filter by harness">
           <button
             aria-pressed={harness === null}
@@ -417,6 +382,14 @@ export function InventoryView({
           ))}
         </nav>
         <div className="mcp-tag-toolbar">
+          <input
+            className="mcp-search"
+            type="search"
+            aria-label="Search MCP connections"
+            placeholder="Search connections…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
           <label>
             Tag{" "}
             <select
@@ -472,6 +445,7 @@ export function InventoryView({
                         variants={variants.find(
                           (group) => group[0].id === server.id,
                         )!}
+                        suggestions={tagNames}
                         tags={combinedTags[server.id] ?? []}
                         checks={cachedChecks}
                         actions={actions}

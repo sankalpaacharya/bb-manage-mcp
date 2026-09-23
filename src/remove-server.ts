@@ -1,5 +1,4 @@
-import { lstat, readFile, writeFile, rename, unlink } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { updateConfig } from "./config-file";
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import {
   parse,
@@ -54,36 +53,6 @@ export function withoutServer(text: string, server: Server): string {
     }),
   );
 }
-const active = new Set<string>();
 export async function removeServer(server: Server): Promise<void> {
-  if (active.has(server.source))
-    throw new Error("Configuration is being updated. Try again.");
-  active.add(server.source);
-  const temporary = server.source + "." + randomUUID() + ".tmp";
-  try {
-    const before = await lstat(server.source);
-    if (!before.isFile() || before.isSymbolicLink() || before.size > 1048576)
-      throw new Error("Unsupported configuration file");
-    const original = await readFile(server.source, "utf8");
-    const updated = withoutServer(original, server);
-    await writeFile(server.source + ".backup-" + randomUUID(), original, {
-      flag: "wx",
-      mode: 0o600,
-    });
-    await writeFile(temporary, updated, {
-      flag: "wx",
-      mode: before.mode & 0o777,
-    });
-    const current = await lstat(server.source);
-    if (
-      current.ino !== before.ino ||
-      current.mtimeMs !== before.mtimeMs ||
-      (await readFile(server.source, "utf8")) !== original
-    )
-      throw new Error("Configuration changed. Refresh and try again.");
-    await rename(temporary, server.source);
-  } finally {
-    active.delete(server.source);
-    await unlink(temporary).catch(() => {});
-  }
+  await updateConfig(server.source, (text) => withoutServer(text, server));
 }

@@ -87,6 +87,22 @@ export default function plugin(bb: BbPluginApi) {
   const tagKey = (hostId: string, serverId: string) =>
     `tags:${JSON.stringify([hostId, serverId])}`;
   bb.rpc.register(rpcContract, {
+    add: async (server) => {
+      const selected = await target();
+      if (JSON.stringify(selected) !== cacheKey)
+        throw new Error(
+          "Host settings changed. Refresh before adding a connection.",
+        );
+      const { hostId, projects } = selected;
+      const inventory = await host.call(
+        "add",
+        { projects, server },
+        { hostId },
+      );
+      if (JSON.stringify(selected) === cacheKey)
+        cache.replaceInventory(inventory);
+      return inventory;
+    },
     tags: async () => {
       const { hostId } = await target();
       const entries = cache.snapshot().inventory?.servers ?? [];

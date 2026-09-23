@@ -1,3 +1,5 @@
+import { AddServerForm } from "../src/add-server-form";
+import type { AddInput } from "../src/add-contract";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JSDOM } from "jsdom";
@@ -98,16 +100,32 @@ test("plain list filters by harness and offers re-authentication", async () => {
     const servers = () =>
       within(view.getByRole("region", { name: "MCP servers" }));
     assert.equal(servers().getAllByRole("listitem").length, 2);
+    const search = view.getByRole("searchbox", {
+      name: "Search MCP connections",
+    });
+    fireEvent.change(search, { target: { value: "DOC" } });
+    assert.equal(servers().getAllByRole("listitem").length, 1);
+    fireEvent.change(search, { target: { value: "no-match" } });
+    assert.ok(servers().getByText("No connections match these filters."));
+    fireEvent.change(search, { target: { value: "" } });
     const row = within(servers().getByText("docs").closest("li")!);
     assert.equal(row.getAllByRole("button").length, 3);
     assert.ok(row.getByText("Not checked"));
     fireEvent.click(row.getByRole("button", { name: "Edit tags for docs" }));
-    fireEvent.change(row.getByRole("textbox", { name: "Tags for docs" }), {
-      target: { value: "Work, tools" },
-    });
-    fireEvent.click(row.getByRole("button", { name: "Save tags" }));
-    await waitFor(() => assert.deepEqual(savedTags, ["tools", "work"]));
-    await waitFor(() => assert.equal(row.queryByRole("textbox"), null));
+    fireEvent.change(
+      row.getByRole("textbox", { name: "Find or create a tag" }),
+      {
+        target: { value: "Work" },
+      },
+    );
+    fireEvent.keyDown(
+      row.getByRole("textbox", { name: "Find or create a tag" }),
+      { key: "Enter" },
+    );
+    await waitFor(() => assert.deepEqual(savedTags, ["work"]));
+    assert.equal(row.queryByRole("button", { name: "Save tags" }), null);
+    fireEvent.keyDown(row.getByRole("textbox"), { key: "Escape" });
+    assert.equal(row.queryByRole("textbox"), null);
     assert.equal(view.queryByRole("button", { name: "Check status" }), null);
     fireEvent.click(row.getByRole("button", { name: "Delete docs" }));
     assert.equal(removed, 0);
@@ -177,6 +195,44 @@ test("plain list filters by harness and offers re-authentication", async () => {
         .getByRole("button", { name: "Refreshing…" })
         .hasAttribute("disabled"),
     );
+    cleanup();
+    let added: AddInput | undefined;
+    let closed = false;
+    const form = render(
+      <AddServerForm
+        sources={[
+          {
+            harness: "Claude Code",
+            path: "/home/test/.claude.json",
+            scope: "user",
+            project: null,
+            status: "missing",
+            issue: null,
+          },
+        ]}
+        onAdd={async (input) => {
+          added = input;
+        }}
+        onClose={() => {
+          closed = true;
+        }}
+      />,
+    );
+    fireEvent.change(form.getByRole("textbox", { name: "Name" }), {
+      target: { value: "docs" },
+    });
+    fireEvent.change(form.getByRole("textbox", { name: "Server URL" }), {
+      target: { value: "https://example.com/mcp" },
+    });
+    fireEvent.submit(form.getByRole("form", { name: "Add MCP connection" }));
+    await waitFor(() => assert.equal(closed, true));
+    assert.deepEqual(added, {
+      harness: "Claude Code",
+      source: "/home/test/.claude.json",
+      name: "docs",
+      transport: "http",
+      url: "https://example.com/mcp",
+    });
   } finally {
     cleanup();
     dom.window.close();

@@ -88,4 +88,10 @@ Configuration locations are checked against [Claude's scope documentation](https
 
 ## Tags and grouping
 
-Use the tag icon on a row to enter comma-separated tags (up to eight, 32 characters each). Tags are saved in BB plugin storage, separately from MCP configuration. Tagging a combined row applies those tags to its existing configurations. Use the Tag filter and Group by tag checkbox to organize the list. A connection with multiple tags appears in each group; untagged connections have their own group. Newly added configurations start untagged.
+Use the tag icon on a row to open a quick picker. Click an existing tag to add or remove it, or type a new tag and press Enter. Changes save immediately (up to eight tags, 32 characters each). Tags are saved in BB plugin storage, separately from MCP configuration. Tagging a combined row applies those tags to its existing configurations. Use the Tag filter and Group by tag checkbox to organize the list. A connection with multiple tags appears in each group; untagged connections have their own group. Newly added configurations start untagged.
+
+## Adding and finding connections
+
+Click **Add MCP** beside Refresh. Choose a harness and user-wide or project configuration, enter a name, then provide a remote HTTP(S) URL or a local executable and arguments (one per line). Project destinations come from the plugin’s project-folder settings. Existing names cannot be overwritten. Missing files are created with private permissions; existing files get a private backup before editing. JSON comments are preserved; TOML is reserialized and may lose comments or formatting. Advanced headers and environment variables still require editing the harness config.
+
+New connections appear immediately; use Refresh to check their status and Reconnect if they need OAuth sign-in. Search above the list filters instantly by name, harness, or tag and combines with the harness and tag filters.

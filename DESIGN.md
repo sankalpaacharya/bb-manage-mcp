@@ -12,4 +12,6 @@ Opening the page only reads cached inventory and status. Pending background resu
 
 Status refresh runs one native list command per harness/project context, sharing the result across its servers. Claude uses `claude mcp list`; Codex uses `codex mcp list --json`. Configuration is displayed before health checks finish; unreachable servers can still delay a harness response.
 
-User tags are editable inline and persist in BB storage. Filtering and grouping by tag compose with the harness filter. Multiple tags place a connection in each matching group.
+User tags are editable through an anchored picker with instant saves and persist in BB storage. Filtering and grouping by tag compose with the harness filter. Multiple tags place a connection in each matching group.
+
+Add MCP uses a compact inline form with explicit configuration scope. Search composes with tag and harness filters without a network request.
