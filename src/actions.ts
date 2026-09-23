@@ -61,22 +61,47 @@ export function parseStatus(server: Server, output: string): ActionResult {
   if (/\bconnected\b/i.test(status)) return result("connected", "Connected");
   return result("unknown", "Status unavailable · check in the harness");
 }
-export async function checkServer(
-  server: Server,
+export function parseListStatus(server: Server, output: string): ActionResult {
+  if (server.harness === "Codex") return parseStatus(server, output);
+  const clean = output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+  const line = clean
+    .split("\n")
+    .find((line) => line.startsWith(server.name + ": "));
+  if (!line)
+    return result("unknown", "Not reported by this harness in this project");
+  const marker = line.lastIndexOf(" - ");
+  return marker < 0
+    ? result("unknown", "Status unavailable")
+    : parseStatus(server, "Status: " + line.slice(marker + 3));
+}
+export async function checkServers(
+  servers: Server[],
   signal?: AbortSignal,
-): Promise<ActionResult> {
-  if (server.harness !== "Claude Code" && server.harness !== "Codex")
-    return result("manual", `Check connection status in ${server.harness}.`);
+): Promise<Record<string, ActionResult>> {
+  if (!servers.length) return {};
+  const first = servers[0];
+  if (
+    servers.some(
+      (server) =>
+        server.harness !== first.harness || server.project !== first.project,
+    )
+  )
+    throw new Error("Mixed harness contexts");
+  if (first.harness !== "Claude Code" && first.harness !== "Codex")
+    return Object.fromEntries(
+      servers.map((server) => [
+        server.id,
+        result("manual", `Check connection status in ${server.harness}.`),
+      ]),
+    );
   const args =
-    server.harness === "Codex"
-      ? ["mcp", "list", "--json"]
-      : ["mcp", "get", "--", server.name];
+    first.harness === "Codex" ? ["mcp", "list", "--json"] : ["mcp", "list"];
   return new Promise((resolve) =>
     execFile(
-      binaries[server.harness],
+      binaries[first.harness],
       args,
       {
-        cwd: server.project ?? homedir(),
+        cwd: first.project ?? homedir(),
         signal,
         timeout: 20000,
         maxBuffer: 262144,
@@ -84,15 +109,26 @@ export async function checkServer(
       },
       (error, stdout) =>
         resolve(
-          error
-            ? result(
-                "unknown",
-                "Status check failed. Check that the harness CLI is available.",
-              )
-            : parseStatus(server, stdout),
+          Object.fromEntries(
+            servers.map((server) => [
+              server.id,
+              error
+                ? result(
+                    "unknown",
+                    "Status check failed. Check that the harness CLI is available.",
+                  )
+                : parseListStatus(server, stdout),
+            ]),
+          ),
         ),
     ),
   );
+}
+export async function checkServer(
+  server: Server,
+  signal?: AbortSignal,
+): Promise<ActionResult> {
+  return (await checkServers([server], signal))[server.id];
 }
 export function authorizationUrl(output: string): string | null {
   for (const match of output.matchAll(/https:\/\/[^\s<>"\x1b]+/g)) {

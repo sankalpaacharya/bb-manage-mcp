@@ -1,6 +1,6 @@
 # Manage MCP for BB
 
-A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Status checks run in the background at BB plugin startup and on explicit refresh, with at most two in flight. Each connection also has **Check status** and **Re-authenticate** actions.
+A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Status checks run in the background at BB plugin startup and on explicit refresh, with at most two harness/project batches in flight. Each connection also has **Check status** and **Re-authenticate** actions.
 
 Counts describe configuration entries, including disabled entries; they are not live connection counts.
 
@@ -49,7 +49,7 @@ Configuration references: [Claude Code](https://code.claude.com/docs/en/mcp), [C
 
 ## Status and sign-in
 
-- Claude Code: checks connection status with `mcp get`; browser sign-in uses `mcp login` on versions that support it.
+- Claude Code: checks connection status with `mcp list`; browser sign-in uses `mcp login` on versions that support it.
 - Codex: reads `mcp list --json`. Saved OAuth or bearer credentials are labeled **Credentials saved**, not connected. Sign-in uses `mcp login`.
 - OpenCode: sign-in uses `mcp auth`; check live status in OpenCode.
 - Gemini CLI and Cursor: the row provides a native sign-in command; connection status must be checked in the harness.
@@ -77,3 +77,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for change and commit conventions.
 Run `npm run preview` and open `dist/preview.html` for a self-contained, interactive preview with synthetic data and light/dark switching. It renders the production component, makes no network requests, and does not read your real configuration.
 
 Opening the page only reads cached inventory and status. Pending background results are polled without launching new CLI checks. The cache lasts until BB restarts or the plugin reloads; Refresh rescans with current settings.
+
+Status refresh runs one native list command per harness/project context, sharing the result across its servers. Claude uses `claude mcp list`; Codex uses `codex mcp list --json`. Configuration is displayed before health checks finish; unreachable servers can still delay a harness response.

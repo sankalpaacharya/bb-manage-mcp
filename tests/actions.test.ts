@@ -102,3 +102,21 @@ test("sign-in jobs expose only the login link, deduplicate, and cancel", async (
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("batch list statuses match exact names and never expose endpoint details", async () => {
+  const { parseListStatus } = await import("../src/actions");
+  const output =
+    "docs-extra: https://secret.example - ✓ Connected\ndocs: https://secret.example - ⚠ Needs authentication\nfailed: local-command - ✗ Failed to connect";
+  assert.equal(parseListStatus(server, output).state, "auth-required");
+  assert.equal(
+    parseListStatus({ ...server, name: "failed" }, output).state,
+    "failed",
+  );
+  assert.equal(
+    parseListStatus({ ...server, name: "missing" }, output).state,
+    "unknown",
+  );
+  assert.ok(
+    !JSON.stringify(parseListStatus(server, output)).includes("secret.example"),
+  );
+});

@@ -56,6 +56,15 @@ const hostTarget = target.extend({
 });
 const task = z.object({ taskId: z.string().uuid() }).strict();
 export const hostContract = defineRpcContract({
+  checkMany: {
+    input: z
+      .object({
+        projects: z.array(z.string().max(1024)).max(20),
+        serverIds: z.array(z.string().max(160)).max(250),
+      })
+      .strict(),
+    output: z.record(z.string(), action),
+  },
   check: { input: hostTarget, output: action },
   authenticate: { input: hostTarget, output: action },
   poll: { input: task, output: action },

@@ -12,3 +12,5 @@ Report entries as configured, disabled in configuration, or incomplete. The CLI 
 Only named configuration files are scanned. Plugin-bundled MCPs, cloud connectors, managed settings, runtime overrides, and parent-directory inheritance are outside this version's coverage. Commands, arguments, URLs, and credentials are excluded from output. Scans never execute servers or edit harness configuration.
 
 Opening the page only reads cached inventory and status. Pending background results are polled without launching new CLI checks. The cache lasts until BB restarts or the plugin reloads; Refresh rescans with current settings.
+
+Status refresh runs one native list command per harness/project context, sharing the result across its servers. Claude uses `claude mcp list`; Codex uses `codex mcp list --json`. Configuration is displayed before health checks finish; unreachable servers can still delay a harness response.

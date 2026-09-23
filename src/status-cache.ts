@@ -27,7 +27,10 @@ export class StatusCache {
   }
   refresh(
     scan: (signal: AbortSignal) => Promise<Inventory>,
-    check: (id: string, signal: AbortSignal) => Promise<ActionResult>,
+    check: (
+      ids: string[],
+      signal: AbortSignal,
+    ) => Promise<Record<string, ActionResult>>,
   ): void {
     if (this.running || this.controller.signal.aborted) return;
     this.value.pending = true;
@@ -49,28 +52,45 @@ export class StatusCache {
             },
           ]),
         );
+        const groups = new Map<string, string[]>();
+        for (const entry of entries) {
+          const key = JSON.stringify([entry.harness, entry.project]);
+          const group = groups.get(key) ?? [];
+          group.push(entry.id);
+          groups.set(key, group);
+        }
+        const batches = [...groups.values()];
         let cursor = 0;
         const worker = async () => {
-          while (!this.controller.signal.aborted && cursor < entries.length) {
-            const entry = entries[cursor++];
+          while (!this.controller.signal.aborted && cursor < batches.length) {
+            const ids = batches[cursor++];
             try {
-              this.update(
-                entry.id,
-                await check(entry.id, this.controller.signal),
-              );
+              const results = await check(ids, this.controller.signal);
+              for (const id of ids)
+                this.update(
+                  id,
+                  results[id] ?? {
+                    state: "unknown",
+                    message: "Status unavailable",
+                    taskId: null,
+                    url: null,
+                    command: null,
+                  },
+                );
             } catch {
-              this.update(entry.id, {
-                state: "unknown",
-                message: "Status unavailable. Try again.",
-                taskId: null,
-                url: null,
-                command: null,
-              });
+              for (const id of ids)
+                this.update(id, {
+                  state: "unknown",
+                  message: "Status unavailable. Try again.",
+                  taskId: null,
+                  url: null,
+                  command: null,
+                });
             }
           }
         };
         await Promise.all(
-          Array.from({ length: Math.min(2, entries.length) }, () => worker()),
+          Array.from({ length: Math.min(2, batches.length) }, () => worker()),
         );
       } catch {
         this.value.error =

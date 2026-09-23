@@ -55,10 +55,10 @@ export default function plugin(bb: BbPluginApi) {
           { hostId: selected.hostId, signal },
         );
       },
-      (serverId, signal) =>
+      (serverIds, signal) =>
         host.call(
-          "check",
-          { serverId, projects: selected.projects },
+          "checkMany",
+          { serverIds, projects: selected.projects },
           { hostId: selected.hostId, signal },
         ),
     );

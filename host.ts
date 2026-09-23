@@ -1,7 +1,7 @@
 import { experimental_defineHostEntry } from "@get-bb/plugin-sdk";
 import { hostContract } from "./src/contract";
 import { scanInventory } from "./src/inventory";
-import { AuthJobs, checkServer } from "./src/actions";
+import { AuthJobs, checkServer, checkServers } from "./src/actions";
 const jobs = new AuthJobs();
 async function target(
   input: { projects: string[]; serverId: string },
@@ -23,6 +23,19 @@ export default experimental_defineHostEntry({
   contract: hostContract,
   dispose: () => jobs.dispose(),
   handlers: {
+    checkMany: async ({ projects, serverIds }, context) => {
+      const inventory = await scanInventory({
+        projects,
+        signal: context.signal,
+      });
+      const ids = new Set(serverIds);
+      const entries = inventory.servers.filter(
+        (server) => ids.has(server.id) && server.state === "configured",
+      );
+      if (entries.length !== ids.size)
+        throw new Error("Inventory changed. Refresh connections.");
+      return checkServers(entries, context.signal);
+    },
     check: async (input, context) =>
       checkServer(await target(input, context.signal), context.signal),
     authenticate: async (input, context) =>
