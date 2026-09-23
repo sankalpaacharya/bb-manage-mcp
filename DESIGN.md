@@ -4,6 +4,6 @@ Use BB's existing font and semantic theme tokens. A compact heading precedes a h
 
 Each row contains the server name, scope, harness, status, and two actions: Check status and Re-authenticate. Sign-in instructions appear inline when needed. No internal sidebar, cards, dashboard statistics, inspector, decorative palette, or remote fonts. Every configuration stays separate, including duplicate names.
 
-Status starts as Not checked. Saved credentials do not imply a live connection. Disabled or incomplete entries retain their labels and disable actions. Counts include those entries.
+Status checks run automatically on open and refresh, with at most three checks in flight. Saved credentials do not imply a live connection. Disabled or incomplete entries retain their labels and disable actions. Counts include those entries.
 
 Rows wrap on narrow panels. Controls support keyboard focus and selected states. All logos are bundled locally; attribution is in assets/ICON-SOURCES.md.

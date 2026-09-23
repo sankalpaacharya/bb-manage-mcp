@@ -21,6 +21,15 @@ export function HarnessIcon({ harness }: { harness: Harness }) {
   return (
     <svg
       aria-hidden="true"
+      style={{
+        color: {
+          "Claude Code": "#d97757",
+          Codex: "#10a37f",
+          "Gemini CLI": "#4285f4",
+          OpenCode: "#8b7cf8",
+          Cursor: "#d19a38",
+        }[harness],
+      }}
       viewBox="0 0 24 24"
       width="24"
       height="24"

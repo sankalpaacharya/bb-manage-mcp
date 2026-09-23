@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
+import {
+  useConnectionChecks,
+  type ConnectionCheck,
+} from "./use-connection-checks";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
@@ -13,12 +17,16 @@ function ServerRow({
   server,
   actions,
   hidden,
+  connection,
+  onCheck,
 }: {
   server: Server;
   actions?: Actions;
   hidden: boolean;
+  connection?: ConnectionCheck;
+  onCheck: (id: string) => Promise<void>;
 }) {
-  const [status, setStatus] = useState<ActionResult | null>(null);
+  const status = connection?.result;
   const [auth, setAuth] = useState<ActionResult | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +59,7 @@ function ServerRow({
     setBusy(kind);
     setError(null);
     try {
-      if (kind === "check") setStatus(await actions.check(server.id));
+      if (kind === "check") await onCheck(server.id);
       else
         setAuth(
           auth?.state === "waiting" && auth.taskId
@@ -85,14 +93,18 @@ function ServerRow({
           ? "Disabled"
           : server.state === "invalid"
             ? "Incomplete"
-            : (status?.message ?? "Not checked")}
+            : connection?.pending
+              ? "Checking…"
+              : (status?.message ?? "Not checked")}
       </span>
       <div className="mcp-actions">
         <button
-          disabled={unavailable || busy !== null}
+          disabled={unavailable || busy !== null || connection?.pending}
           onClick={() => void run("check")}
         >
-          {busy === "check" ? "Checking…" : "Check status"}
+          {busy === "check" || connection?.pending
+            ? "Checking…"
+            : "Check status"}
         </button>
         <button
           disabled={unavailable || busy !== null}
@@ -134,6 +146,7 @@ export function InventoryView({
   onRefresh: () => void;
   actions?: Actions;
 }) {
+  const { checks, check } = useConnectionChecks(inventory, actions?.check);
   const [harness, setHarness] = useState<Harness | null>(null);
   const entries = inventory?.servers ?? [];
   const visible = entries.filter(
@@ -195,6 +208,8 @@ export function InventoryView({
                     <ServerRow
                       key={server.id}
                       server={server}
+                      connection={checks[server.id]}
+                      onCheck={check}
                       actions={actions}
                       hidden={!!harness && harness !== server.harness}
                     />

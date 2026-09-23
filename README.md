@@ -1,6 +1,6 @@
 # Manage MCP for BB
 
-A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Each connection has **Check status** and **Re-authenticate** actions.
+A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Status checks run automatically on open and refresh, with at most three in flight. Each connection also has **Check status** and **Re-authenticate** actions.
 
 Counts describe configuration entries, including disabled entries; they are not live connection counts.
 
@@ -42,7 +42,7 @@ Configuration references: [Claude Code](https://code.claude.com/docs/en/mcp), [C
 
 - Reads configurations on the selected host. Returns only server names, harness, source/project paths, inferred transport, and configuration state.
 - Excludes commands, arguments, endpoints, environment values, authentication headers, and raw parser errors. Metadata such as server names and paths is visible to authenticated BB users.
-- Inventory scans never launch processes or edit files. Explicit status and sign-in actions run the installed harness CLI on the selected host; the harness may launch configured MCP processes or save credentials. Raw CLI output is never returned.
+- Inventory scans never launch processes or edit files. Automatic and manual status checks and explicit sign-in actions run the installed harness CLI on the selected host; the harness may launch configured MCP processes or save credentials. Raw CLI output is never returned.
 - Reads at most 1 MiB per file and returns at most 250 entries with a truncation notice. Missing files are normal; unreadable or malformed files appear as scan issues.
 - Each declaration has its own row. Native CLI actions resolve the effective server name in the project directory (or host home), so harness precedence applies to duplicate names.
 - Excludes plugin-bundled servers, cloud connectors, enterprise-managed settings, custom Claude configuration directories, runtime flags, and inline configuration. Project scanning uses the explicitly listed folders, without recursive discovery or parent traversal.
