@@ -216,6 +216,7 @@
   display: none;
 }
 .mcp-row[data-expanded="true"] {
+  border-radius: 10px;
   background: color-mix(in srgb, var(--muted) 30%, transparent);
 }
 .mcp-identity,
@@ -347,7 +348,7 @@
 .mcp-detail-tag {
   font-size: 11px;
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--muted);
 }
 .mcp-simple .mcp-tag-button {
