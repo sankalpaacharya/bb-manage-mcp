@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/readme-logo.svg" width="96" alt="Manage MCP logo" />
+  <img src="assets/mcp.svg" width="112" alt="Manage MCP logo" />
 </p>
 
 <h1 align="center">Manage MCP</h1>
