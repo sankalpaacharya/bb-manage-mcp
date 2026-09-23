@@ -10,7 +10,7 @@
     "name": "Manage MCP",
     "description": "Inspect MCP server configurations across coding harnesses.",
     "branding": {
-      "icon": "Plug"
+      "icon": "./assets/mcp.svg"
     },
     "server": "./server.ts",
     "app": "./app.tsx",
