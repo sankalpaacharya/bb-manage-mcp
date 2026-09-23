@@ -10,9 +10,9 @@
   box-sizing: border-box;
 }
 .mcp-simple main {
-  max-width: 1180px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 28px 32px;
+  padding: 24px;
 }
 .mcp-simple header {
   display: flex;
@@ -92,10 +92,10 @@
 }
 .mcp-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) 135px minmax(140px, 1fr) auto;
-  gap: 16px;
+  grid-template-columns: minmax(180px, 1fr) 120px minmax(160px, 220px) 118px;
+  gap: 14px;
   align-items: center;
-  padding: 17px 0;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--border);
 }
 .mcp-row[hidden] {
@@ -105,7 +105,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .mcp-name strong {
   font-weight: 500;
@@ -127,8 +127,8 @@
 }
 .mcp-status {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
+  gap: 7px;
   color: var(--muted-foreground);
   font-size: 12px;
 }
@@ -248,8 +248,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -258,6 +258,67 @@
   font-weight: 600;
 }
 .mcp-server-icon svg {
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
+}
+
+.mcp-list-heading {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 120px minmax(160px, 220px) 118px;
+  gap: 14px;
+  padding: 8px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.mcp-row:hover {
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.mcp-actions {
+  justify-content: flex-end;
+}
+.mcp-actions button {
+  padding: 5px 8px;
+}
+.mcp-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+.mcp-status-connected {
+  background: #35b879;
+  opacity: 1;
+}
+.mcp-status-auth-required,
+.mcp-status-failed {
+  background: #d99543;
+  opacity: 1;
+}
+.mcp-spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--foreground);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: mcp-spin 0.8s linear infinite;
+}
+@keyframes mcp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mcp-spinner {
+    animation: none;
+    border-top-color: var(--foreground);
+    border-right-color: var(--foreground);
+  }
+}
+@media (max-width: 850px) {
+  .mcp-list-heading {
+    display: none;
+  }
 }

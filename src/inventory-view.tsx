@@ -87,15 +87,21 @@ function ServerRow({
         {server.harness}
       </span>
       <span className="mcp-status" role="status">
-        <span aria-hidden="true">
-          {status?.state === "connected" ? "●" : "○"}
-        </span>
+        <span
+          aria-hidden="true"
+          className={
+            connection?.pending && server.state === "configured"
+              ? "mcp-spinner"
+              : `mcp-status-dot mcp-status-${status?.state ?? "unknown"}`
+          }
+        />
         {server.state === "disabled"
           ? "Disabled"
           : server.state === "invalid"
             ? "Incomplete"
-            : (status?.message ??
-              (connection?.pending ? "Checking…" : "Not checked"))}
+            : connection?.pending
+              ? "Checking…"
+              : (status?.message ?? "Not checked")}
       </span>
       <div className="mcp-actions">
         <button disabled={unavailable || busy} onClick={() => void run()}>
@@ -195,6 +201,12 @@ export function InventoryView({
             </p>
           ) : (
             <>
+              <div className="mcp-list-heading" aria-hidden="true">
+                <span>Connection</span>
+                <span>Harness</span>
+                <span>Status</span>
+                <span />
+              </div>
               <ul className="mcp-list">
                 {[...entries]
                   .sort(
