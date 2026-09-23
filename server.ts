@@ -1,0 +1,68 @@
+import { cliCommand, defineCli, type BbPluginApi } from "@get-bb/plugin-sdk";
+import { hostContract, rpcContract } from "./src/contract";
+
+export default function plugin(bb: BbPluginApi) {
+  const settings = bb.settings.define({
+    hostId: {
+      type: "string",
+      label: "Host ID (blank uses the primary host)",
+      default: "",
+    },
+    projectPaths: {
+      type: "string",
+      label:
+        "Project folders on that host (one absolute path per line, up to 20)",
+      experimental_multiline: true,
+      default: "",
+    },
+  });
+  const host = bb.hosts.experimental_client({ contract: hostContract });
+  async function inventory(signal?: AbortSignal) {
+    const config = await settings.get();
+    const hostId =
+      config.hostId.trim() || (await bb.sdk.system.config()).primaryHostId;
+    if (!hostId)
+      throw new Error(
+        "No primary host is available. Set Host ID in Manage MCP settings to an enrolled host.",
+      );
+    const projects = config.projectPaths
+      .split("\n")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return host.call("scan", { projects }, { hostId, signal });
+  }
+  bb.rpc.register(rpcContract, { inventory: () => inventory() });
+  bb.cli.register(
+    defineCli({
+      name: "manage-mcp",
+      summary: "Inspect MCP configurations across harnesses",
+      commands: {
+        list: cliCommand({
+          summary: "List configured MCP servers on the selected host",
+          options: { json: { type: "boolean", description: "Return JSON" } },
+          async run(input, context) {
+            const result = await inventory(context.signal);
+            const lines = result.servers.map(
+              (s) =>
+                `${s.harness} | ${s.name} | ${s.state} | ${s.transport} | ${s.source}${s.project ? ` [${s.project}]` : ""}`,
+            );
+            const errors = result.sources.filter((s) => s.status === "error");
+            lines.push(...errors.map((s) => `Warning: ${s.path}: ${s.issue}`));
+            if (result.truncated) lines.push("Results limited to 250 servers.");
+            return {
+              exitCode: 0,
+              stdout: input.options.json
+                ? JSON.stringify(result)
+                : [
+                    ...(lines.length
+                      ? lines
+                      : ["No configured MCP servers found."]),
+                    "Configuration inventory only; live connection status is not checked.",
+                  ].join("\n"),
+            };
+          },
+        }),
+      },
+    }),
+  );
+}
