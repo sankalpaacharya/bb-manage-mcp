@@ -1,11 +1,12 @@
 import "./src/library.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { definePluginApp, useRpc } from "@get-bb/plugin-sdk/app";
+import { definePluginApp, useRpc, useBbNavigate } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./src/contract";
 import type { Snapshot } from "./src/status-cache";
 import { InventoryView } from "./src/inventory-view";
 
 function InventoryPage() {
+  const navigate = useBbNavigate();
   const rpc = useRpc<typeof rpcContract>();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +40,13 @@ function InventoryPage() {
   }, [snapshot, load]);
   const actions = useMemo(
     () => ({
+      openUrl: (url: string) => navigate.openUrl(url),
       authenticate: (serverId: string) =>
         rpc.call("authenticate", { serverId }),
       poll: (taskId: string) => rpc.call("poll", { taskId }),
       cancel: (taskId: string) => rpc.call("cancel", { taskId }),
     }),
-    [rpc],
+    [rpc, navigate],
   );
   return (
     <InventoryView

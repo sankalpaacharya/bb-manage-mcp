@@ -61,15 +61,20 @@ test("plain list filters by harness and offers re-authentication", async () => {
     ],
   };
   let refreshed = 0;
+  const opened: string[] = [];
   try {
     const view = render(
       <InventoryView
         actions={{
+          openUrl: (url) => {
+            opened.push(url);
+            return true;
+          },
           authenticate: async () => ({
-            state: "complete",
-            message: "Sample sign-in complete",
+            state: "waiting",
+            message: "Sample sign-in ready",
             taskId: null,
-            url: null,
+            url: "https://example.com/authorize?client_id=test&response_type=code",
             command: null,
           }),
           poll: async () => {
@@ -95,7 +100,8 @@ test("plain list filters by harness and offers re-authentication", async () => {
     assert.ok(row.getByText("Not checked"));
     assert.equal(view.queryByRole("button", { name: "Check status" }), null);
     fireEvent.click(row.getByRole("button", { name: "Re-authenticate" }));
-    await waitFor(() => assert.ok(row.getByText("Sample sign-in complete")));
+    await waitFor(() => assert.ok(row.getByText("Sample sign-in ready")));
+    assert.equal(opened.length, 1);
     fireEvent.click(view.getByRole("button", { name: /^Codex/ }));
     assert.equal(servers().getAllByRole("listitem").length, 1);
     fireEvent.click(view.getByRole("button", { name: /^All / }));

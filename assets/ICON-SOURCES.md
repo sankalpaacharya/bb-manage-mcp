@@ -1,3 +1,5 @@
 # Harness marks
 
 Claude, Gemini, OpenCode, and Cursor SVG paths come from [Simple Icons](https://simpleicons.org/) (CC0). The Codex/OpenAI mark matches BB's bundled `provider-codex/icons/codex.svg`. Brand marks remain the property of their respective owners. All paths are bundled locally, rendered with distinct harness accent colors, and paired with harness labels.
+
+Service marks in `src/server-marks.json` are bundled from Simple Icons 16.32.0 (CC0). Name matching is a display hint, not verified service identity. Unknown MCPs use locally generated initials. No remote logo requests are made.

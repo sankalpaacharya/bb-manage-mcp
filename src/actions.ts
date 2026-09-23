@@ -244,8 +244,8 @@ export class AuthJobs {
         state: ok ? "complete" : "failed",
         url: null,
         message: ok
-          ? "Sign-in completed. Check status to verify the connection."
-          : "Could not complete sign-in. Run the command in your harness terminal.",
+          ? "Sign-in completed. Refresh to verify the connection."
+          : "The harness could not start browser sign-in. Check the server’s OAuth configuration and try again.",
       };
       output = "";
     };

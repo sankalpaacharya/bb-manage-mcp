@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
 import type { ConnectionCheck } from "./status-cache";
+import { ServerIcon } from "./server-icon";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
+  openUrl?: (url: string) => boolean;
   authenticate: (id: string) => Promise<ActionResult>;
   poll: (id: string) => Promise<ActionResult>;
   cancel: (id: string) => Promise<ActionResult>;
@@ -21,6 +23,7 @@ function ServerRow({
   connection?: ConnectionCheck;
 }) {
   const status = connection?.result;
+  const openedUrl = useRef<string | null>(null);
   const [auth, setAuth] = useState<ActionResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +51,11 @@ function ServerRow({
       clearTimeout(timer);
     };
   }, [actions, auth?.taskId, auth?.state]);
+  useEffect(() => {
+    if (auth?.url && openedUrl.current !== auth.url && actions?.openUrl) {
+      if (actions.openUrl(auth.url)) openedUrl.current = auth.url;
+    }
+  }, [auth?.url, actions]);
   const run = async () => {
     if (!actions) return;
     setBusy(true);
@@ -67,9 +75,12 @@ function ServerRow({
   const unavailable = server.state !== "configured" || !actions;
   return (
     <li className="mcp-row" hidden={hidden}>
-      <div className="mcp-name">
-        <strong>{server.name}</strong>
-        <span>{server.project ?? "User configuration"}</span>
+      <div className="mcp-identity">
+        <ServerIcon name={server.name} />
+        <div className="mcp-name">
+          <strong>{server.name}</strong>
+          <span>{server.project ?? "User configuration"}</span>
+        </div>
       </div>
       <span className="mcp-row-harness">
         <HarnessIcon harness={server.harness} />
@@ -103,7 +114,7 @@ function ServerRow({
               Open sign-in page ↗
             </a>
           )}
-          {auth?.command && auth.state !== "complete" && (
+          {auth?.command && auth.state === "manual" && (
             <code>{auth.command}</code>
           )}
         </div>
@@ -149,7 +160,11 @@ export function InventoryView({
             aria-pressed={harness === null}
             onClick={() => setHarness(null)}
           >
-            All <span>{entries.length}</span>
+            <span className="mcp-harness-label">All harnesses</span>
+            <span className="mcp-count">
+              {inventory ? entries.length : "—"}
+            </span>
+            <small>configured connections</small>
           </button>
           {HARNESSES.map((name) => (
             <button
@@ -157,11 +172,16 @@ export function InventoryView({
               aria-pressed={harness === name}
               onClick={() => setHarness(harness === name ? null : name)}
             >
-              <HarnessIcon harness={name} />
-              <span>{name}</span>
-              <span className="mcp-count">
-                {entries.filter((entry) => entry.harness === name).length}
+              <span className="mcp-harness-label">
+                <HarnessIcon harness={name} />
+                <span>{name}</span>
               </span>
+              <span className="mcp-count">
+                {inventory
+                  ? entries.filter((entry) => entry.harness === name).length
+                  : "—"}
+              </span>
+              <small>configured connections</small>
             </button>
           ))}
         </nav>
