@@ -384,20 +384,6 @@
   align-items: center;
   border-color: transparent !important;
 }
-.mcp-row-tags {
-  display: flex;
-  gap: 4px;
-  overflow: hidden;
-  max-width: 130px;
-  flex-shrink: 2;
-}
-.mcp-row-tags > span {
-  background: var(--muted);
-  border-radius: 3px;
-  padding: 2px 5px;
-  font-size: 10px;
-  white-space: nowrap;
-}
 .mcp-simple .mcp-scope-select {
   max-width: 125px;
   min-width: 0;
@@ -407,9 +393,6 @@
   color: var(--muted-foreground);
 }
 @media (max-width: 650px) {
-  .mcp-row-tags {
-    display: none;
-  }
   .mcp-name {
     flex-wrap: wrap;
   }
@@ -477,35 +460,55 @@
   font: inherit;
 }
 
-.mcp-tag-filters {
+.mcp-row-toggle {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: -2px 0 18px;
+  gap: 9px;
+  min-width: 0;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  text-align: left;
+}
+.mcp-row-toggle strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mcp-chevron {
+  flex-shrink: 0;
   color: var(--muted-foreground);
 }
-.mcp-tag-filters > svg {
-  flex-shrink: 0;
-  margin-right: 2px;
+.mcp-row-details {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 0 10px 21px;
 }
-.mcp-tag-filters button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border-radius: 999px;
-  padding: 4px 10px;
+.mcp-row-details[hidden] {
+  display: none;
+}
+.mcp-detail-label {
+  color: var(--muted-foreground);
   font-size: 12px;
 }
-.mcp-tag-filters button span {
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
+.mcp-detail-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.mcp-tag-filters button[aria-pressed="true"] {
-  background: var(--muted);
-  color: var(--foreground);
-  border-color: var(--muted-foreground);
+.mcp-detail-tag {
+  font-size: 12px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
 }
-.mcp-row-tags > span {
-  border-radius: 999px;
+.mcp-row-details .mcp-tag-popover {
+  left: 0;
+  right: auto;
+}
+.mcp-row-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
 }

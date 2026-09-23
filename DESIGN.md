@@ -2,7 +2,7 @@
 
 Use BB's existing font and semantic theme tokens. A compact heading precedes a single compact summary bar with harness logos and unique-name counts. Selecting a harness filters a plain list below it.
 
-Each row contains the server name, scope, harness, status, and compact tag, Reconnect, and delete controls. Sign-in instructions appear inline when needed. No internal sidebar, server cards, dashboard statistics, inspector, decorative palette, or remote fonts. Same names within a harness share a row. Their underlying configurations remain separate and a selector requires choosing a scope before reconnecting or deleting.
+Each row contains the server name, scope, harness, status, and compact Reconnect and delete controls. Tags and their editor appear only in expanded row details. Sign-in instructions appear inline when needed. No internal sidebar, server cards, dashboard statistics, inspector, decorative palette, or remote fonts. Same names within a harness share a row. Their underlying configurations remain separate and a selector requires choosing a scope before reconnecting or deleting.
 
 Status checks run in the background at BB plugin startup and on explicit refresh, with all harness/project batches running concurrently. Saved credentials do not imply a live connection. Disabled or incomplete entries retain their labels and disable actions. Counts include those entries.
 
@@ -16,4 +16,4 @@ User tags are editable through an anchored picker with instant saves and persist
 
 Search composes with tag and harness filters without a network request.
 
-Tags appear as compact pill filters with counts below search and as small pills on rows. Counts reflect search and harness filters, count combined rows once, and ignore the active tag filter. Clicking the selected tag returns to all connections.
+Tags stay inside expandable row details. A compact tag select beside search replaces the chip strip; counts reflect search and harness filters. Unknown services use a neutral connector symbol rather than colored initials.

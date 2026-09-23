@@ -71,18 +71,7 @@ export function TagPicker({
           setError("");
         }}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          aria-hidden="true"
-        >
-          <path d="M3 3h8l10 10-8 8L3 11Z" />
-          <circle cx="7.5" cy="7.5" r="1" />
-        </svg>
+        Edit tags
       </button>
       {open && (
         <div

@@ -109,6 +109,17 @@ test("plain list filters by harness and offers re-authentication", async () => {
     const row = within(servers().getByText("docs").closest("li")!);
     assert.equal(row.getAllByRole("button").length, 3);
     assert.ok(row.getByText("Not checked"));
+    assert.equal(
+      row.queryByRole("button", { name: "Edit tags for docs" }),
+      null,
+    );
+    fireEvent.click(row.getByRole("button", { name: "Details for docs" }));
+    assert.equal(
+      row
+        .getByRole("button", { name: "Details for docs" })
+        .getAttribute("aria-expanded"),
+      "true",
+    );
     fireEvent.click(row.getByRole("button", { name: "Edit tags for docs" }));
     fireEvent.change(
       row.getByRole("textbox", { name: "Find or create a tag" }),
@@ -176,21 +187,12 @@ test("plain list filters by harness and offers re-authentication", async () => {
     assert.ok(view.getByRole("combobox", { name: "Configuration for docs" }));
     fireEvent.click(view.getByRole("checkbox", { name: "Group by tag" }));
     assert.ok(view.getByRole("heading", { name: "work 1" }));
-    const tagFilters = within(
-      view.getByRole("navigation", { name: "Filter by tag" }),
-    );
-    assert.ok(tagFilters.getByRole("button", { name: "all 2" }));
-    fireEvent.click(tagFilters.getByRole("button", { name: "work 1" }));
-    assert.equal(
-      tagFilters
-        .getByRole("button", { name: "work 1" })
-        .getAttribute("aria-pressed"),
-      "true",
-    );
+    const tagFilter = view.getByRole("combobox", { name: "Filter by tag" });
+    fireEvent.change(tagFilter, { target: { value: "tag:work" } });
     assert.equal(servers().getAllByRole("listitem").length, 1);
-    fireEvent.click(tagFilters.getByRole("button", { name: "work 1" }));
+    fireEvent.change(tagFilter, { target: { value: "all" } });
     assert.equal(servers().getAllByRole("listitem").length, 2);
-    fireEvent.click(tagFilters.getByRole("button", { name: "untagged 0" }));
+    fireEvent.change(tagFilter, { target: { value: "untagged" } });
     assert.ok(servers().getByText("No connections match these filters."));
     view.rerender(
       <InventoryView

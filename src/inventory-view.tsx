@@ -1,5 +1,5 @@
 import { TagPicker } from "./tag-picker";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
 import type { ConnectionCheck } from "./status-cache";
@@ -35,6 +35,8 @@ function ServerRow({
   selectedId?: string;
   onSelect?: (id: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const status = connection?.result;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [auth, setAuth] = useState<ActionResult | null>(null);
@@ -96,11 +98,39 @@ function ServerRow({
   const needsScope = variants.length > 1 && !selectedId;
   const unavailable = server.state !== "configured" || !actions || needsScope;
   return (
-    <li className="mcp-row" hidden={hidden}>
+    <li
+      className="mcp-row"
+      hidden={hidden}
+      onClick={(event) => {
+        const target = event.target as HTMLElement;
+        if (!target.closest("button, select, input, a, [data-row-details]"))
+          setExpanded((value) => !value);
+      }}
+    >
       <div className="mcp-identity">
-        <ServerIcon name={server.name} />
         <div className="mcp-name">
-          <strong>{server.name}</strong>
+          <button
+            className="mcp-row-toggle"
+            aria-label={`Details for ${server.name}`}
+            aria-expanded={expanded}
+            aria-controls={detailsId}
+            onClick={() => setExpanded(!expanded)}
+          >
+            <svg
+              className="mcp-chevron"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <path d={expanded ? "m6 9 6 6 6-6" : "m9 6 6 6-6 6"} />
+            </svg>
+            <ServerIcon name={server.name} />
+            <strong>{server.name}</strong>
+          </button>
           {variants.length > 1 && (
             <select
               className="mcp-scope-select"
@@ -118,13 +148,6 @@ function ServerRow({
             </select>
           )}
         </div>
-        {tags.length > 0 && (
-          <span className="mcp-row-tags">
-            {tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </span>
-        )}
       </div>
       <span className="mcp-row-harness">
         <HarnessIcon harness={server.harness} />
@@ -160,16 +183,6 @@ function ServerRow({
                           : "Status unavailable"}
       </span>
       <div className="mcp-actions">
-        <TagPicker
-          name={server.name}
-          tags={tags}
-          suggestions={suggestions}
-          onSave={
-            actions?.saveTags
-              ? (values) => actions.saveTags!(server.id, values)
-              : undefined
-          }
-        />
         <button disabled={unavailable || busy} onClick={() => void run()}>
           {busy
             ? "Starting…"
@@ -197,6 +210,39 @@ function ServerRow({
             <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7" />
           </svg>
         </button>
+      </div>
+      <div
+        id={detailsId}
+        className="mcp-row-details"
+        data-row-details
+        hidden={!expanded}
+      >
+        {expanded && (
+          <>
+            <span className="mcp-detail-label">Tags</span>
+            <div className="mcp-detail-tags">
+              {tags.length ? (
+                tags.map((tag) => (
+                  <span className="mcp-detail-tag" key={tag}>
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <span className="mcp-detail-label">No tags yet</span>
+              )}
+              <TagPicker
+                name={server.name}
+                tags={tags}
+                suggestions={suggestions}
+                onSave={
+                  actions?.saveTags
+                    ? (values) => actions.saveTags!(server.id, values)
+                    : undefined
+                }
+              />
+            </div>
+          </>
+        )}
       </div>
       {confirmDelete && (
         <div
@@ -374,6 +420,32 @@ export function InventoryView({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          <select
+            aria-label="Filter by tag"
+            value={tagFilter}
+            onChange={(event) => setTagFilter(event.target.value)}
+          >
+            <option value="all">All tags</option>
+            {tagNames.map((tag) => (
+              <option key={tag} value={`tag:${tag}`}>
+                {tag} (
+                {
+                  matching.filter((entry) =>
+                    combinedTags[entry.id]?.includes(tag),
+                  ).length
+                }
+                )
+              </option>
+            ))}
+            <option value="untagged">
+              Untagged (
+              {
+                matching.filter((entry) => !combinedTags[entry.id]?.length)
+                  .length
+              }
+              )
+            </option>
+          </select>
           <label className="mcp-group-toggle">
             <input
               type="checkbox"
@@ -383,45 +455,6 @@ export function InventoryView({
             Group by tag
           </label>
         </div>
-        <nav className="mcp-tag-filters" aria-label="Filter by tag">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            aria-hidden="true"
-          >
-            <path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
-          </svg>
-          {[
-            { value: "all", label: "all", count: matching.length },
-            ...tagNames.map((tag) => ({
-              value: `tag:${tag}`,
-              label: tag,
-              count: matching.filter((entry) =>
-                combinedTags[entry.id]?.includes(tag),
-              ).length,
-            })),
-            {
-              value: "untagged",
-              label: "untagged",
-              count: matching.filter((entry) => !combinedTags[entry.id]?.length)
-                .length,
-            },
-          ].map((tag) => (
-            <button
-              key={tag.value}
-              aria-pressed={tagFilter === tag.value}
-              onClick={() =>
-                setTagFilter(tagFilter === tag.value ? "all" : tag.value)
-              }
-            >
-              {tag.label} <span>{tag.count}</span>
-            </button>
-          ))}
-        </nav>
         {error && <p role="alert">{error}</p>}
         <section aria-label="MCP servers" aria-busy={pending}>
           {!inventory ? (

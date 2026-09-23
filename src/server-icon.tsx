@@ -1,5 +1,4 @@
 import marks from "./server-marks.json";
-const palette = ["#d97757", "#10a37f", "#4285f4", "#8b7cf8", "#c08a35"];
 export function ServerIcon({ name }: { name: string }) {
   const normalized = name.toLowerCase().replace(/^mcp[-_]/, "");
   const service = Object.keys(marks).find(
@@ -9,27 +8,25 @@ export function ServerIcon({ name }: { name: string }) {
       normalized.startsWith(key + "_"),
   ) as keyof typeof marks | undefined;
   const mark = service ? marks[service] : null;
-  const hash = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const initials =
-    name
-      .split(/[^a-z0-9]+/i)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase() || "M";
   return (
     <span
       className="mcp-server-icon"
       aria-hidden="true"
-      style={{ color: mark?.color ?? palette[hash % palette.length] }}
+      style={{ color: mark?.color ?? "var(--muted-foreground)" }}
     >
       {mark ? (
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d={mark.path} />
         </svg>
       ) : (
-        initials
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M9 3v4m6-4v4M7 7h10v4a5 5 0 0 1-10 0V7Zm5 9v5" />
+        </svg>
       )}
     </span>
   );
