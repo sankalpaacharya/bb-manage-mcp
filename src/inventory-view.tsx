@@ -100,6 +100,7 @@ function ServerRow({
   return (
     <li
       className="mcp-row"
+      data-expanded={expanded}
       hidden={hidden}
       onClick={(event) => {
         const target = event.target as HTMLElement;
@@ -379,7 +380,22 @@ export function InventoryView({
           <h1>
             MCP connections <span>{inventory ? entries.length : "—"}</span>
           </h1>
-          <button onClick={onRefresh} disabled={pending}>
+          <button
+            className="mcp-refresh"
+            onClick={onRefresh}
+            disabled={pending}
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1" />
+            </svg>
             {pending ? "Refreshing…" : "Refresh"}
           </button>
         </header>
@@ -412,14 +428,28 @@ export function InventoryView({
           ))}
         </nav>
         <div className="mcp-tag-toolbar">
-          <input
-            className="mcp-search"
-            type="search"
-            aria-label="Search MCP connections"
-            placeholder="Search connections…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+          <div className="mcp-search-field">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden="true"
+            >
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m16 16 5 5" />
+            </svg>
+            <input
+              className="mcp-search"
+              type="search"
+              aria-label="Search MCP connections"
+              placeholder="Search connections…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
           <select
             aria-label="Filter by tag"
             value={tagFilter}

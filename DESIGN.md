@@ -17,3 +17,7 @@ User tags are editable through an anchored picker with instant saves and persist
 Search composes with tag and harness filters without a network request.
 
 Tags stay inside expandable row details. A compact tag select beside search replaces the chip strip; counts reflect search and harness filters. Unknown services use a neutral connector symbol rather than colored initials.
+
+## Visual refinement
+
+This is a native IDE utility: inherit BB font and semantic background, foreground, muted, border, and focus tokens. No independent hex palette or display typeface. Use 18px headings, 13px names, 12px secondary labels, and 11px counts. Harnesses use an understated underline for selection, with brand color confined to logos. Service logos sit directly on the row, without tiles. Share the column definition between headings and rows; rows are approximately 44px high on desktop and become two lines below 640px. Search and filters share one toolbar. Expanded tags sit underneath the name as a continuation of the row. Avoid cards, a tag wall, and extra dashboard summaries.
