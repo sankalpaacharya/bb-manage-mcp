@@ -99,7 +99,7 @@ test("plain list filters by harness and offers re-authentication", async () => {
     assert.equal(row.getAllByRole("button").length, 1);
     assert.ok(row.getByText("Not checked"));
     assert.equal(view.queryByRole("button", { name: "Check status" }), null);
-    fireEvent.click(row.getByRole("button", { name: "Re-authenticate" }));
+    fireEvent.click(row.getByRole("button", { name: "Reconnect" }));
     await waitFor(() => assert.ok(row.getByText("Sample sign-in ready")));
     assert.equal(opened.length, 1);
     fireEvent.click(view.getByRole("button", { name: /^Codex/ }));
@@ -108,7 +108,7 @@ test("plain list filters by harness and offers re-authentication", async () => {
     assert.equal(servers().getAllByRole("listitem").length, 2);
     assert.ok(
       within(servers().getByText("design").closest("li")!)
-        .getByRole("button", { name: "Re-authenticate" })
+        .getByRole("button", { name: "Reconnect" })
         .hasAttribute("disabled"),
     );
     fireEvent.click(view.getByRole("button", { name: "Refresh" }));

@@ -79,7 +79,11 @@ function ServerRow({
         <ServerIcon name={server.name} />
         <div className="mcp-name">
           <strong>{server.name}</strong>
-          <span>{server.project ?? "User configuration"}</span>
+          <span className="mcp-scope">
+            {server.project
+              ? server.project.split("/").filter(Boolean).at(-1)
+              : "User"}
+          </span>
         </div>
       </div>
       <span className="mcp-row-harness">
@@ -101,7 +105,17 @@ function ServerRow({
             ? "Incomplete"
             : connection?.pending
               ? "Checking…"
-              : (status?.message ?? "Not checked")}
+              : !status
+                ? "Not checked"
+                : status.state === "connected"
+                  ? "Connected"
+                  : status.state === "credentials"
+                    ? "Credentials saved"
+                    : status.state === "auth-required"
+                      ? "Sign-in required"
+                      : status.state === "failed"
+                        ? "Not connected"
+                        : "Unverified"}
       </span>
       <div className="mcp-actions">
         <button disabled={unavailable || busy} onClick={() => void run()}>
@@ -109,7 +123,7 @@ function ServerRow({
             ? "Starting…"
             : auth?.state === "waiting"
               ? "Cancel sign-in"
-              : "Re-authenticate"}
+              : "Reconnect"}
         </button>
       </div>
       {(error || auth) && (
@@ -202,7 +216,7 @@ export function InventoryView({
           ) : (
             <>
               <div className="mcp-list-heading" aria-hidden="true">
-                <span>Connection</span>
+                <span>Connector</span>
                 <span>Harness</span>
                 <span>Status</span>
                 <span />
