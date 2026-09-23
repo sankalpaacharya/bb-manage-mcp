@@ -27,7 +27,7 @@ body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 .preview-light { --background: #fcfcfd; --foreground: #222733; --muted-foreground: #606776; --border: #dde0e6; color-scheme: light; }
 .preview-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 18px; background: var(--background); color: var(--muted-foreground); border-bottom: 1px solid var(--border); font-size: 11px; }
 .preview-note button { padding: 5px 8px; border: 1px solid var(--border); background: transparent; color: var(--foreground); border-radius: 5px; cursor: pointer; font: inherit; }
-.preview-app > .mcp-library { flex: 1; }
+.preview-app > .mcp-simple { flex: 1; }
 `;
 await mkdir(dirname(output), { recursive: true });
 await writeFile(

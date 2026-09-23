@@ -1,5 +1,5 @@
 import "./src/library.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { definePluginApp, useRpc } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./src/contract";
 import type { Inventory } from "./src/model";
@@ -33,8 +33,19 @@ function InventoryPage() {
       request.current++;
     };
   }, [refresh]);
+  const actions = useMemo(
+    () => ({
+      check: (serverId: string) => rpc.call("check", { serverId }),
+      authenticate: (serverId: string) =>
+        rpc.call("authenticate", { serverId }),
+      poll: (taskId: string) => rpc.call("poll", { taskId }),
+      cancel: (taskId: string) => rpc.call("cancel", { taskId }),
+    }),
+    [rpc],
+  );
   return (
     <InventoryView
+      actions={actions}
       inventory={inventory}
       pending={pending}
       error={error}

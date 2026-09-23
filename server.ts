@@ -17,7 +17,7 @@ export default function plugin(bb: BbPluginApi) {
     },
   });
   const host = bb.hosts.experimental_client({ contract: hostContract });
-  async function inventory(signal?: AbortSignal) {
+  async function target() {
     const config = await settings.get();
     const hostId =
       config.hostId.trim() || (await bb.sdk.system.config()).primaryHostId;
@@ -29,9 +29,31 @@ export default function plugin(bb: BbPluginApi) {
       .split("\n")
       .map((p) => p.trim())
       .filter(Boolean);
+    return { hostId, projects };
+  }
+  async function inventory(signal?: AbortSignal) {
+    const { hostId, projects } = await target();
     return host.call("scan", { projects }, { hostId, signal });
   }
-  bb.rpc.register(rpcContract, { inventory: () => inventory() });
+  bb.rpc.register(rpcContract, {
+    inventory: () => inventory(),
+    check: async ({ serverId }) => {
+      const { hostId, projects } = await target();
+      return host.call("check", { serverId, projects }, { hostId });
+    },
+    authenticate: async ({ serverId }) => {
+      const { hostId, projects } = await target();
+      return host.call("authenticate", { serverId, projects }, { hostId });
+    },
+    poll: async (input) => {
+      const { hostId } = await target();
+      return host.call("poll", input, { hostId });
+    },
+    cancel: async (input) => {
+      const { hostId } = await target();
+      return host.call("cancel", input, { hostId });
+    },
+  });
   bb.cli.register(
     defineCli({
       name: "manage-mcp",

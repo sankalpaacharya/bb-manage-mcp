@@ -1,574 +1,229 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { HARNESSES, type Harness, type Inventory, type Source } from "./model";
-import {
-  filterGroups,
-  groupHarnesses,
-  groupServers,
-  groupTransport,
-  stateLabel,
-  transportLabel,
-  type LibraryFilter,
-  type LibrarySort,
-  type ServerGroup,
-} from "./catalog";
-import { LibraryIcon as Icon } from "./library-icons";
+import { useEffect, useState } from "react";
+import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
+import type { ActionResult } from "./actions";
+import { HarnessIcon } from "./harness-icons";
 
-const harnessMark: Record<Harness, string> = {
-  "Claude Code": "Cl",
-  Codex: "Cx",
-  "Gemini CLI": "Ge",
-  OpenCode: "Oc",
-  Cursor: "Cu",
-};
-function HarnessBadge({ name }: { name: Harness }) {
-  return (
-    <span className="mcp-harness-badge">
-      <span aria-hidden="true">{harnessMark[name]}</span>
-      {name}
-    </span>
-  );
+export interface Actions {
+  check: (id: string) => Promise<ActionResult>;
+  authenticate: (id: string) => Promise<ActionResult>;
+  poll: (id: string) => Promise<ActionResult>;
+  cancel: (id: string) => Promise<ActionResult>;
 }
-function ServerMark({ name }: { name: string }) {
-  const hash = [...name].reduce(
-    (value, character) => value + character.charCodeAt(0),
-    0,
-  );
-  const initials = name.replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2) || "M";
-  return (
-    <span className={`mcp-server-mark mcp-tone-${hash % 5}`} aria-hidden="true">
-      {initials}
-    </span>
-  );
-}
-function LibraryCard({
-  group,
-  selected,
-  detailsId,
-  onSelect,
+function ServerRow({
+  server,
+  actions,
+  hidden,
 }: {
-  group: ServerGroup;
-  selected: boolean;
-  detailsId: string;
-  onSelect: (target: HTMLButtonElement) => void;
+  server: Server;
+  actions?: Actions;
+  hidden: boolean;
 }) {
-  const harnesses = groupHarnesses(group);
-  const incomplete = group.entries.some((entry) => entry.state === "invalid");
-  const disabled = group.entries.every((entry) => entry.state === "disabled");
+  const [status, setStatus] = useState<ActionResult | null>(null);
+  const [auth, setAuth] = useState<ActionResult | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!actions || auth?.state !== "waiting" || !auth.taskId) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const next = await actions.poll(auth.taskId!);
+        if (!stopped) {
+          setAuth(next);
+          if (next.state === "waiting") timer = setTimeout(poll, 2000);
+        }
+      } catch {
+        if (!stopped) {
+          setError("Could not check sign-in progress.");
+          timer = setTimeout(poll, 5000);
+        }
+      }
+    };
+    timer = setTimeout(poll, 1000);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [actions, auth?.taskId, auth?.state]);
+  const run = async (kind: "check" | "authenticate") => {
+    if (!actions) return;
+    setBusy(kind);
+    setError(null);
+    try {
+      if (kind === "check") setStatus(await actions.check(server.id));
+      else
+        setAuth(
+          auth?.state === "waiting" && auth.taskId
+            ? await actions.cancel(auth.taskId)
+            : await actions.authenticate(server.id),
+        );
+    } catch {
+      setError("Action failed. Check your host connection and try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const unavailable = server.state !== "configured" || !actions;
   return (
-    <li className="mcp-catalog-item">
-      <button
-        className="mcp-server-card"
-        aria-label={`Inspect ${group.name}`}
-        aria-expanded={selected}
-        aria-controls={selected ? detailsId : undefined}
-        data-selected={selected}
-        onClick={(event) => onSelect(event.currentTarget)}
-      >
-        <div className="mcp-card-heading">
-          <ServerMark name={group.name} />
-          <div>
-            <h3 title={group.name}>{group.name}</h3>
-            <span className="mcp-card-transport">{groupTransport(group)}</span>
-          </div>
-          <Icon name="chevron" />
-        </div>
-        <div className="mcp-card-coverage">
-          {harnesses.map((name) => (
-            <HarnessBadge key={name} name={name} />
-          ))}
-        </div>
-        <div className="mcp-card-footer">
-          <span>
-            {group.entries.length}{" "}
-            {group.entries.length === 1 ? "configuration" : "configurations"}
-          </span>
-          {incomplete ? (
-            <span className="mcp-attention">
-              <Icon name="warning" />
-              Needs review
-            </span>
-          ) : disabled ? (
-            <span>
-              <Icon name="pause" />
-              Disabled
-            </span>
-          ) : (
-            <span className="mcp-inspect-hint">View details</span>
+    <li className="mcp-row" hidden={hidden}>
+      <div className="mcp-name">
+        <strong>{server.name}</strong>
+        <span title={server.source}>
+          {server.project ?? "User configuration"}
+        </span>
+      </div>
+      <span className="mcp-row-harness">
+        <HarnessIcon harness={server.harness} />
+        {server.harness}
+      </span>
+      <span className="mcp-status" role="status" title={status?.message}>
+        <span aria-hidden="true">
+          {status?.state === "connected" ? "●" : "○"}
+        </span>
+        {server.state === "disabled"
+          ? "Disabled"
+          : server.state === "invalid"
+            ? "Incomplete"
+            : (status?.message ?? "Not checked")}
+      </span>
+      <div className="mcp-actions">
+        <button
+          disabled={unavailable || busy !== null}
+          onClick={() => void run("check")}
+        >
+          {busy === "check" ? "Checking…" : "Check status"}
+        </button>
+        <button
+          disabled={unavailable || busy !== null}
+          onClick={() => void run("authenticate")}
+        >
+          {busy === "authenticate"
+            ? "Starting…"
+            : auth?.state === "waiting"
+              ? "Cancel sign-in"
+              : "Re-authenticate"}
+        </button>
+      </div>
+      {(error || auth) && (
+        <div className="mcp-message" role="status">
+          {error ?? auth?.message}
+          {auth?.url && (
+            <a href={auth.url} target="_blank" rel="noreferrer">
+              Open sign-in page ↗
+            </a>
+          )}
+          {auth?.command && auth.state !== "complete" && (
+            <code>{auth.command}</code>
           )}
         </div>
-      </button>
+      )}
     </li>
   );
 }
-
-function Inspector({
-  group,
-  id,
-  onClose,
-}: {
-  group: ServerGroup;
-  id: string;
-  onClose: () => void;
-}) {
-  const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    heading.current?.focus();
-  }, [group.name]);
-  return (
-    <section id={id} aria-label="Server details" className="mcp-inspector">
-      <div className="mcp-inspector-top">
-        <span>Server details</span>
-        <button
-          className="mcp-icon-button"
-          aria-label="Close server details"
-          onClick={onClose}
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-      <div className="mcp-inspector-identity">
-        <ServerMark name={group.name} />
-        <h2 ref={heading} tabIndex={-1}>
-          {group.name}
-        </h2>
-        <p>{groupTransport(group)}</p>
-      </div>
-      <h3>
-        Configured in {groupHarnesses(group).length}{" "}
-        {groupHarnesses(group).length === 1 ? "harness" : "harnesses"}
-      </h3>
-      {group.entries.length > 1 && (
-        <p className="mcp-inspector-note">
-          Grouped by name. Each configuration below is separate.
-        </p>
-      )}
-      <ol className="mcp-instances">
-        {group.entries.map((entry) => (
-          <li key={entry.id}>
-            <div className="mcp-instance-heading">
-              <HarnessBadge name={entry.harness} />
-              <span className={`mcp-state mcp-state-${entry.state}`}>
-                {stateLabel[entry.state]}
-              </span>
-            </div>
-            <dl>
-              <div>
-                <dt>Scope</dt>
-                <dd>{entry.scope === "user" ? "User" : "Project"}</dd>
-              </div>
-              <div>
-                <dt>Transport</dt>
-                <dd>{transportLabel[entry.transport]}</dd>
-              </div>
-            </dl>
-            <div className="mcp-source-path">
-              <span>Configuration file</span>
-              <code>{entry.source}</code>
-            </div>
-            {entry.project && (
-              <div className="mcp-source-path">
-                <span>Project folder</span>
-                <code>{entry.project}</code>
-              </div>
-            )}
-          </li>
-        ))}
-      </ol>
-      <p className="mcp-privacy-note">
-        Credentials stay on your host. Live connections and authentication are
-        not checked.
-      </p>
-    </section>
-  );
-}
-
-function SourceList({ sources }: { sources: Source[] }) {
-  return (
-    <ul className="mcp-source-list">
-      {sources.map((source) => (
-        <li key={`${source.harness}:${source.path}`}>
-          <div className="mcp-source-symbol">
-            <Icon name="file" />
-          </div>
-          <div className="mcp-source-content">
-            <div>
-              <strong>{source.harness}</strong>
-              <span
-                className={`mcp-state mcp-state-${source.status === "error" ? "invalid" : "neutral"}`}
-              >
-                {source.status === "loaded"
-                  ? "Read"
-                  : source.status === "missing"
-                    ? "Not found"
-                    : "Unreadable"}
-              </span>
-            </div>
-            <code>{source.path}</code>
-            {source.issue && <p className="mcp-attention">{source.issue}</p>}
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function InventoryView({
   inventory,
   pending,
   error,
   onRefresh,
+  actions,
 }: {
   inventory: Inventory | null;
   pending: boolean;
   error: string | null;
   onRefresh: () => void;
+  actions?: Actions;
 }) {
-  const [tab, setTab] = useState<"servers" | "sources">("servers");
-  const [query, setQuery] = useState("");
   const [harness, setHarness] = useState<Harness | null>(null);
-  const [filter, setFilter] = useState<LibraryFilter>("all");
-  const [sort, setSort] = useState<LibrarySort>("name");
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const trigger = useRef<HTMLButtonElement | null>(null);
-  const detailsId = useId();
-  const groups = groupServers(inventory?.servers ?? []);
-  const sources = inventory?.sources ?? [];
-  const issues = sources.filter((source) => source.status === "error");
-  const visible = filterGroups(groups, { query, harness, filter, sort });
-  const selected = visible.find((group) => group.name === selectedName);
-  const needle = query.trim().toLocaleLowerCase();
-  const visibleSources = sources.filter(
-    (source) =>
-      (!harness || source.harness === harness) &&
-      [source.harness, source.path].some((value) =>
-        value.toLocaleLowerCase().includes(needle),
-      ),
+  const entries = inventory?.servers ?? [];
+  const visible = entries.filter(
+    (entry) => !harness || entry.harness === harness,
   );
-  const reviewCount = groups.filter((group) =>
-    group.entries.some((entry) => entry.state === "invalid"),
-  ).length;
-  const disabledCount = groups.filter((group) =>
-    group.entries.some((entry) => entry.state === "disabled"),
-  ).length;
-  function chooseFilter(value: LibraryFilter) {
-    setTab("servers");
-    setFilter(value);
-    setSelectedName(null);
-  }
-  function resetFilters() {
-    setQuery("");
-    setHarness(null);
-    setFilter("all");
-    setSelectedName(null);
-  }
-  function showSources() {
-    setTab("sources");
-    setSelectedName(null);
-    setQuery("");
-  }
+  const issues =
+    inventory?.sources.filter((source) => source.status === "error") ?? [];
   return (
-    <div className="mcp-library">
-      <main className="mcp-library-frame">
-        <header className="mcp-library-header">
-          <div className="mcp-library-title">
-            <span className="mcp-brand-mark">
-              <Icon name="network" />
-            </span>
-            <div>
-              <h1>MCP library</h1>
-              <p>Your servers, across your coding tools.</p>
-            </div>
-          </div>
-          <button className="mcp-button" onClick={onRefresh} disabled={pending}>
-            <Icon name="refresh" />
-            {pending ? "Scanning…" : "Refresh inventory"}
+    <div className="mcp-simple">
+      <main>
+        <header>
+          <h1>
+            MCP connections <span>{inventory ? entries.length : "—"}</span>
+          </h1>
+          <button onClick={onRefresh} disabled={pending}>
+            {pending ? "Refreshing…" : "Refresh"}
           </button>
         </header>
-        <div className="mcp-workspace">
-          <aside className="mcp-filter-rail" aria-label="Library filters">
-            <nav aria-label="Library views">
-              <h2>Library</h2>
-              <button
-                data-active={tab === "servers" && filter === "all"}
-                aria-pressed={tab === "servers" && filter === "all"}
-                onClick={() => chooseFilter("all")}
-              >
-                <Icon name="library" />
-                <span>All servers</span>
-                <small>{groups.length}</small>
-              </button>
-              <button
-                data-active={tab === "servers" && filter === "review"}
-                aria-pressed={tab === "servers" && filter === "review"}
-                onClick={() => chooseFilter("review")}
-              >
-                <Icon name="warning" />
-                <span>Needs review</span>
-                <small>{reviewCount}</small>
-              </button>
-              <button
-                data-active={tab === "servers" && filter === "disabled"}
-                aria-pressed={tab === "servers" && filter === "disabled"}
-                onClick={() => chooseFilter("disabled")}
-              >
-                <Icon name="pause" />
-                <span>Disabled</span>
-                <small>{disabledCount}</small>
-              </button>
-              <button
-                data-active={tab === "sources"}
-                aria-pressed={tab === "sources"}
-                onClick={showSources}
-              >
-                <Icon name="file" />
-                <span>Configuration files</span>
-                <small>{sources.length}</small>
-              </button>
-            </nav>
-            <nav aria-label="Filter by harness" className="mcp-harness-nav">
-              <h2>Harnesses</h2>
-              <button
-                data-active={!harness}
-                aria-pressed={!harness}
-                onClick={() => {
-                  setHarness(null);
-                  setSelectedName(null);
-                }}
-              >
-                <span>All harnesses</span>
-                <small>{groups.length}</small>
-              </button>
-              {HARNESSES.map((name) => (
-                <button
-                  key={name}
-                  data-active={harness === name}
-                  aria-pressed={harness === name}
-                  onClick={() => {
-                    setHarness(name);
-                    setSelectedName(null);
-                  }}
-                >
-                  <span className="mcp-harness-mark" aria-hidden="true">
-                    {harnessMark[name]}
-                  </span>
-                  <span>{name}</span>
-                  <small>
-                    {
-                      groups.filter((group) =>
-                        groupHarnesses(group).includes(name),
-                      ).length
-                    }
-                  </small>
-                </button>
-              ))}
-            </nav>
-            <div className="mcp-rail-note">
-              <Icon name="file" />
-              <p>Read from your configuration files. Nothing is changed.</p>
-            </div>
-          </aside>
-          <div className="mcp-library-content">
-            <div className="mcp-search">
-              <Icon name="search" />
-              <input
-                type="search"
-                aria-label="Filter MCPs"
-                placeholder="Search servers, harnesses, or paths…"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setSelectedName(null);
-                }}
-              />
-              {query && (
-                <button
-                  className="mcp-icon-button"
-                  aria-label="Clear search"
-                  onClick={() => setQuery("")}
-                >
-                  <Icon name="close" />
-                </button>
-              )}
-            </div>
-            {error && (
-              <div role="alert" className="mcp-notice mcp-notice-error">
-                <Icon name="warning" />
-                <p>
-                  {error}
-                  {inventory && " Showing your previous scan."}
-                </p>
-              </div>
-            )}
-            {issues.length > 0 && tab === "servers" && (
-              <div className="mcp-notice">
-                <Icon name="warning" />
-                <p>
-                  {issues.length} configuration{" "}
-                  {issues.length === 1 ? "file needs" : "files need"} attention.
-                </p>
-                <button
-                  onClick={() => {
-                    setHarness(null);
-                    showSources();
-                  }}
-                >
-                  Review files
-                </button>
-              </div>
-            )}
-            <div className="mcp-catalog-toolbar">
-              <div>
-                <h2>
-                  {tab === "sources"
-                    ? "Configuration files"
-                    : filter === "review"
-                      ? "Needs review"
-                      : filter === "disabled"
-                        ? "Disabled servers"
-                        : harness
-                          ? `${harness} servers`
-                          : "Your servers"}
-                </h2>
-                <span role="status">
-                  {inventory
-                    ? `${tab === "sources" ? visibleSources.length : visible.length} ${tab === "sources" ? "files" : "server names"}`
-                    : "Reading configurations"}
-                </span>
-              </div>
-              {tab === "servers" && (
-                <div className="mcp-catalog-tools">
-                  <select
-                    aria-label="Sort servers"
-                    value={sort}
-                    onChange={(event) =>
-                      setSort(event.target.value as LibrarySort)
-                    }
-                  >
-                    <option value="name">Name A–Z</option>
-                    <option value="harnesses">Most harnesses</option>
-                  </select>
-                  <div
-                    className="mcp-view-switch"
-                    role="group"
-                    aria-label="Server layout"
-                  >
-                    {(["grid", "list"] as const).map((value) => (
-                      <button
-                        key={value}
-                        className="mcp-icon-button"
-                        aria-label={`${value === "grid" ? "Grid" : "List"} view`}
-                        aria-pressed={layout === value}
-                        onClick={() => setLayout(value)}
-                      >
-                        <Icon name={value} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div
-              className="mcp-results-layout"
-              data-inspecting={Boolean(selected) && tab === "servers"}
+        <nav className="mcp-harnesses" aria-label="Filter by harness">
+          <button
+            aria-pressed={harness === null}
+            onClick={() => setHarness(null)}
+          >
+            All <span>{entries.length}</span>
+          </button>
+          {HARNESSES.map((name) => (
+            <button
+              key={name}
+              aria-pressed={harness === name}
+              onClick={() => setHarness(harness === name ? null : name)}
+              title={`${name}: ${entries.filter((entry) => entry.harness === name).length} configured MCPs`}
             >
-              {selected && tab === "servers" && (
-                <Inspector
-                  group={selected}
-                  id={detailsId}
-                  onClose={() => {
-                    setSelectedName(null);
-                    trigger.current?.focus();
-                  }}
-                />
-              )}
-              <section
-                className="mcp-results"
-                aria-label={
-                  tab === "servers" ? "MCP servers" : "Configuration sources"
-                }
-                aria-busy={pending}
-              >
-                {!inventory ? (
-                  <div className="mcp-empty">
-                    <Icon name={pending ? "refresh" : "warning"} />
-                    <h3>
-                      {pending
-                        ? "Gathering your servers"
-                        : "Your library is unavailable"}
-                    </h3>
-                    <p>
-                      {pending
-                        ? "Reading the configurations on your host."
-                        : "Check the host in Manage MCP settings, then refresh."}
-                    </p>
-                  </div>
-                ) : (tab === "sources"
-                    ? visibleSources.length
-                    : visible.length) === 0 ? (
-                  <div className="mcp-empty">
-                    <Icon name="search" />
-                    <h3>
-                      {groups.length || tab === "sources"
-                        ? "No matches here"
-                        : "Your library starts here"}
-                    </h3>
-                    <p>
-                      {groups.length || tab === "sources"
-                        ? "Try a different name or broaden your filters."
-                        : "Add project folders in Manage MCP settings, or configure a server in one of your harnesses."}
-                    </p>
-                    {(query || harness || filter !== "all") && (
-                      <button className="mcp-button" onClick={resetFilters}>
-                        Clear filters
-                      </button>
-                    )}
-                  </div>
-                ) : tab === "sources" ? (
-                  <SourceList sources={visibleSources} />
-                ) : (
-                  <ul className={`mcp-catalog mcp-catalog-${layout}`}>
-                    {visible.map((group) => (
-                      <LibraryCard
-                        key={group.name}
-                        group={group}
-                        detailsId={detailsId}
-                        selected={selected?.name === group.name}
-                        onSelect={(target) => {
-                          trigger.current = target;
-                          setSelectedName(group.name);
-                        }}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-            {inventory?.truncated && (
-              <p role="status" className="mcp-notice">
-                Showing the first 250 configurations. Narrow project folders in
-                settings to inspect the rest.
-              </p>
-            )}
-            <footer className="mcp-library-footer">
-              <span>
-                {inventory
-                  ? `${inventory.servers.length} configurations`
-                  : "Read-only inventory"}
-                <span aria-hidden="true"> / </span>Live connections not checked
+              <HarnessIcon harness={name} />
+              <span>{name}</span>
+              <span className="mcp-count">
+                {entries.filter((entry) => entry.harness === name).length}
               </span>
-              {inventory && (
-                <time dateTime={inventory.scannedAt}>
-                  {error ? "Previous scan" : "Last scanned"}{" "}
-                  {new Date(inventory.scannedAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </time>
+            </button>
+          ))}
+        </nav>
+        {error && <p role="alert">{error}</p>}
+        <section aria-label="MCP servers" aria-busy={pending}>
+          {!inventory ? (
+            <p className="mcp-empty">
+              {pending
+                ? "Reading configurations…"
+                : "Unable to load connections."}
+            </p>
+          ) : (
+            <>
+              <ul className="mcp-list">
+                {[...entries]
+                  .sort(
+                    (a, b) =>
+                      a.name.localeCompare(b.name) ||
+                      a.harness.localeCompare(b.harness),
+                  )
+                  .map((server) => (
+                    <ServerRow
+                      key={server.id}
+                      server={server}
+                      actions={actions}
+                      hidden={!!harness && harness !== server.harness}
+                    />
+                  ))}
+              </ul>
+              {!visible.length && (
+                <p className="mcp-empty">
+                  No MCP connections {harness ? `in ${harness}` : "found"}. Add
+                  project folders in Manage MCP settings to include project
+                  configurations.
+                </p>
               )}
-            </footer>
-          </div>
-        </div>
+            </>
+          )}
+        </section>
+        {!!issues.length && (
+          <p className="mcp-note" role="status">
+            {issues.length} configuration{" "}
+            {issues.length === 1 ? "file could" : "files could"} not be read.
+            Check host settings and file access.
+          </p>
+        )}
+        {inventory?.truncated && (
+          <p className="mcp-note">Showing the first 250 configurations.</p>
+        )}
+        <footer>
+          Counts include configured and disabled MCPs. Status is checked on
+          request.
+        </footer>
       </main>
     </div>
   );

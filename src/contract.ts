@@ -34,7 +34,32 @@ export const inventorySchema = z.object({
     }),
   ),
 });
+const action = z.object({
+  state: z.enum([
+    "unknown",
+    "connected",
+    "failed",
+    "credentials",
+    "auth-required",
+    "waiting",
+    "complete",
+    "manual",
+  ]),
+  message: z.string(),
+  taskId: z.string().nullable(),
+  url: z.string().nullable(),
+  command: z.string().nullable(),
+});
+const target = z.object({ serverId: z.string().max(160) }).strict();
+const hostTarget = target.extend({
+  projects: z.array(z.string().max(1024)).max(20),
+});
+const task = z.object({ taskId: z.string().uuid() }).strict();
 export const hostContract = defineRpcContract({
+  check: { input: hostTarget, output: action },
+  authenticate: { input: hostTarget, output: action },
+  poll: { input: task, output: action },
+  cancel: { input: task, output: action },
   scan: {
     input: z
       .object({ projects: z.array(z.string().max(1024)).max(20) })
@@ -43,5 +68,9 @@ export const hostContract = defineRpcContract({
   },
 });
 export const rpcContract = defineRpcContract({
+  check: { input: target, output: action },
+  authenticate: { input: target, output: action },
+  poll: { input: task, output: action },
+  cancel: { input: task, output: action },
   inventory: { input: z.null(), output: inventorySchema },
 });

@@ -1,8 +1,8 @@
 # Manage MCP for BB
 
-A read-only MCP inventory for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**. Browse a searchable library of your servers, filter by harness or configuration state, and inspect every source from one BB sidebar page. Same-named entries share a card; selecting it preserves each individual configuration in an inspector.
+A simple MCP connection list for **Claude Code, Codex, Gemini CLI, OpenCode, and Cursor**, styled with BB's theme. Harness logos and configuration counts filter the list. Each connection has **Check status** and **Re-authenticate** actions.
 
-This inventories configured servers. It does not claim that a server is connected, authenticated, trusted, or permitted by a harness.
+Counts describe configuration entries, including disabled entries; they are not live connection counts.
 
 ## Install
 
@@ -42,10 +42,20 @@ Configuration references: [Claude Code](https://code.claude.com/docs/en/mcp), [C
 
 - Reads configurations on the selected host. Returns only server names, harness, source/project paths, inferred transport, and configuration state.
 - Excludes commands, arguments, endpoints, environment values, authentication headers, and raw parser errors. Metadata such as server names and paths is visible to authenticated BB users.
-- Does not launch MCP processes, probe endpoints, expand variables, edit files, or persist scan results.
+- Inventory scans never launch processes or edit files. Explicit status and sign-in actions run the installed harness CLI on the selected host; the harness may launch configured MCP processes or save credentials. Raw CLI output is never returned.
 - Reads at most 1 MiB per file and returns at most 250 entries with a truncation notice. Missing files are normal; unreadable or malformed files appear as scan issues.
-- Groups exact matching names in the UI while keeping declarations separate in the inspector and CLI. Name grouping does not establish that endpoints or credentials match. It does not merge configurations or resolve trust, approvals, inheritance, or effective permissions.
+- Each declaration has its own row. Native CLI actions resolve the effective server name in the project directory (or host home), so harness precedence applies to duplicate names.
 - Excludes plugin-bundled servers, cloud connectors, enterprise-managed settings, custom Claude configuration directories, runtime flags, and inline configuration. Project scanning uses the explicitly listed folders, without recursive discovery or parent traversal.
+
+## Status and sign-in
+
+- Claude Code: checks connection status with `mcp get`; browser sign-in uses `mcp login` on versions that support it.
+- Codex: reads `mcp list --json`. Saved OAuth or bearer credentials are labeled **Credentials saved**, not connected. Sign-in uses `mcp login`.
+- OpenCode: sign-in uses `mcp auth`; check live status in OpenCode.
+- Gemini CLI and Cursor: the row provides a native sign-in command; connection status must be checked in the harness.
+- Local process credentials are managed in the harness; the plugin does not assume browser OAuth support.
+
+The harness CLI must be on the BB host worker's PATH. Sign-in can open a browser on that host; a detected OAuth authorization link is also shown in BB. If the CLI requires terminal input, run the displayed command in the appropriate project directory. Sign-in jobs can be cancelled, time out after five minutes, and are stopped on plugin disposal. Status checks time out after twenty seconds. No credentials are collected by this plugin.
 
 ## Development
 
