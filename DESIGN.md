@@ -4,7 +4,7 @@ Use BB's existing font and semantic theme tokens. A compact heading precedes a r
 
 Each row contains the server name, scope, harness, status, and one action: Re-authenticate. Sign-in instructions appear inline when needed. No internal sidebar, server cards, dashboard statistics, inspector, decorative palette, or remote fonts. Every configuration stays separate, including duplicate names.
 
-Status checks run in the background at BB plugin startup and on explicit refresh, with at most two harness/project batches in flight. Saved credentials do not imply a live connection. Disabled or incomplete entries retain their labels and disable actions. Counts include those entries.
+Status checks run in the background at BB plugin startup and on explicit refresh, with all harness/project batches running concurrently. Saved credentials do not imply a live connection. Disabled or incomplete entries retain their labels and disable actions. Counts include those entries.
 
 Rows wrap on narrow panels. Controls support keyboard focus and selected states. All logos are bundled locally; attribution is in assets/ICON-SOURCES.md.
 

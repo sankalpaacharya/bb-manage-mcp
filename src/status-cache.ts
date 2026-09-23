@@ -60,38 +60,33 @@ export class StatusCache {
           groups.set(key, group);
         }
         const batches = [...groups.values()];
-        let cursor = 0;
-        const worker = async () => {
-          while (!this.controller.signal.aborted && cursor < batches.length) {
-            const ids = batches[cursor++];
-            try {
-              const results = await check(ids, this.controller.signal);
-              for (const id of ids)
-                this.update(
-                  id,
-                  results[id] ?? {
-                    state: "unknown",
-                    message: "Status unavailable",
-                    taskId: null,
-                    url: null,
-                    command: null,
-                  },
-                );
-            } catch {
-              for (const id of ids)
-                this.update(id, {
+        const checkBatch = async (ids: string[]) => {
+          if (this.controller.signal.aborted) return;
+          try {
+            const results = await check(ids, this.controller.signal);
+            for (const id of ids)
+              this.update(
+                id,
+                results[id] ?? {
                   state: "unknown",
-                  message: "Status unavailable. Try again.",
+                  message: "Status unavailable",
                   taskId: null,
                   url: null,
                   command: null,
-                });
-            }
+                },
+              );
+          } catch {
+            for (const id of ids)
+              this.update(id, {
+                state: "unknown",
+                message: "Status unavailable. Try again.",
+                taskId: null,
+                url: null,
+                command: null,
+              });
           }
         };
-        await Promise.all(
-          Array.from({ length: Math.min(2, batches.length) }, () => worker()),
-        );
+        await Promise.all(batches.map(checkBatch));
       } catch {
         this.value.error =
           "Could not refresh connections. Check the host and try Refresh.";
