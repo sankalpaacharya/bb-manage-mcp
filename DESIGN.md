@@ -14,4 +14,4 @@ Status refresh runs one native list command per harness/project context, sharing
 
 User tags are editable through an anchored picker with instant saves and persist in BB storage. Filtering and grouping by tag compose with the harness filter. Multiple tags place a connection in each matching group.
 
-Add MCP uses a compact inline form with explicit configuration scope. Search composes with tag and harness filters without a network request.
+Search composes with tag and harness filters without a network request.

@@ -1,4 +1,3 @@
-import type { AddInput } from "./src/add-contract";
 import "./src/library.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { definePluginApp, useRpc } from "@get-bb/plugin-sdk/app";
@@ -59,10 +58,6 @@ function InventoryPage() {
   }, [snapshot, load]);
   const actions = useMemo(
     () => ({
-      add: async (input: AddInput) => {
-        await rpc.call("add", input);
-        await load();
-      },
       saveTags: async (serverId: string, values: string[]) => {
         const saved = await rpc.call("setTags", { serverId, tags: values });
         setTags((previous) => ({ ...previous, [serverId]: saved }));

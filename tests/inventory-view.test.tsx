@@ -1,5 +1,3 @@
-import { AddServerForm } from "../src/add-server-form";
-import type { AddInput } from "../src/add-contract";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JSDOM } from "jsdom";
@@ -195,44 +193,6 @@ test("plain list filters by harness and offers re-authentication", async () => {
         .getByRole("button", { name: "Refreshing…" })
         .hasAttribute("disabled"),
     );
-    cleanup();
-    let added: AddInput | undefined;
-    let closed = false;
-    const form = render(
-      <AddServerForm
-        sources={[
-          {
-            harness: "Claude Code",
-            path: "/home/test/.claude.json",
-            scope: "user",
-            project: null,
-            status: "missing",
-            issue: null,
-          },
-        ]}
-        onAdd={async (input) => {
-          added = input;
-        }}
-        onClose={() => {
-          closed = true;
-        }}
-      />,
-    );
-    fireEvent.change(form.getByRole("textbox", { name: "Name" }), {
-      target: { value: "docs" },
-    });
-    fireEvent.change(form.getByRole("textbox", { name: "Server URL" }), {
-      target: { value: "https://example.com/mcp" },
-    });
-    fireEvent.submit(form.getByRole("form", { name: "Add MCP connection" }));
-    await waitFor(() => assert.equal(closed, true));
-    assert.deepEqual(added, {
-      harness: "Claude Code",
-      source: "/home/test/.claude.json",
-      name: "docs",
-      transport: "http",
-      url: "https://example.com/mcp",
-    });
   } finally {
     cleanup();
     dom.window.close();

@@ -2,7 +2,6 @@ import { experimental_defineHostEntry } from "@get-bb/plugin-sdk";
 import { hostContract } from "./src/contract";
 import { scanInventory } from "./src/inventory";
 import { AuthJobs, checkServer, checkServers } from "./src/actions";
-import { addServer } from "./src/add-server";
 import { removeServer } from "./src/remove-server";
 const jobs = new AuthJobs();
 async function target(
@@ -25,29 +24,6 @@ export default experimental_defineHostEntry({
   contract: hostContract,
   dispose: () => jobs.dispose(),
   handlers: {
-    add: async ({ projects, server }, context) => {
-      const inventory = await scanInventory({
-        projects,
-        signal: context.signal,
-      });
-      if (
-        !inventory.sources.some(
-          (source) =>
-            source.harness === server.harness && source.path === server.source,
-        )
-      )
-        throw new Error(
-          "Choose a configuration listed in Manage MCP settings.",
-        );
-      try {
-        await addServer(server);
-      } catch {
-        throw new Error(
-          "Could not add the server. Check for a duplicate name, invalid configuration, or file permissions.",
-        );
-      }
-      return scanInventory({ projects, signal: context.signal });
-    },
     remove: async ({ projects, serverId }, context) => {
       const inventory = await scanInventory({
         projects,

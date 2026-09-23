@@ -1,6 +1,5 @@
 import { defineRpcContract } from "@get-bb/plugin-sdk";
 import { z } from "zod";
-import { addInput } from "./add-contract";
 import { tagListSchema } from "./tags";
 const harness = z.enum([
   "Claude Code",
@@ -58,15 +57,6 @@ const hostTarget = target.extend({
 });
 const task = z.object({ taskId: z.string().uuid() }).strict();
 export const hostContract = defineRpcContract({
-  add: {
-    input: z
-      .object({
-        projects: z.array(z.string().max(1024)).max(20),
-        server: addInput,
-      })
-      .strict(),
-    output: inventorySchema,
-  },
   remove: { input: hostTarget, output: z.null() },
   checkMany: {
     input: z
@@ -98,7 +88,6 @@ const snapshot = z.object({
   error: z.string().nullable(),
 });
 export const rpcContract = defineRpcContract({
-  add: { input: addInput, output: inventorySchema },
   tags: { input: z.null(), output: z.record(z.string(), tagListSchema) },
   setTags: {
     input: target.extend({ tags: tagListSchema }),

@@ -1,6 +1,4 @@
 import { TagPicker } from "./tag-picker";
-import { AddServerForm } from "./add-server-form";
-import type { AddInput } from "./add-contract";
 import { useEffect, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
@@ -10,7 +8,6 @@ import { groupByTag, mergeConnections, type Tags } from "./tags";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
-  add?: (input: AddInput) => Promise<void>;
   saveTags?: (id: string, tags: string[]) => Promise<void>;
   remove?: (id: string) => Promise<void>;
   authenticate: (id: string) => Promise<ActionResult>;
@@ -293,7 +290,6 @@ export function InventoryView({
   onRefresh: () => void;
   actions?: Actions;
 }) {
-  const [adding, setAdding] = useState(false);
   const [harness, setHarness] = useState<Harness | null>(null);
   const [grouped, setGrouped] = useState(false);
   const [search, setSearch] = useState("");
@@ -334,25 +330,10 @@ export function InventoryView({
           <h1>
             MCP connections <span>{inventory ? entries.length : "—"}</span>
           </h1>
-          <div className="mcp-header-actions">
-            <button
-              disabled={!inventory || !actions?.add}
-              onClick={() => setAdding(!adding)}
-            >
-              Add MCP
-            </button>
-            <button onClick={onRefresh} disabled={pending}>
-              {pending ? "Refreshing…" : "Refresh"}
-            </button>
-          </div>
+          <button onClick={onRefresh} disabled={pending}>
+            {pending ? "Refreshing…" : "Refresh"}
+          </button>
         </header>
-        {adding && inventory && actions?.add && (
-          <AddServerForm
-            sources={inventory.sources}
-            onAdd={actions.add}
-            onClose={() => setAdding(false)}
-          />
-        )}
         <nav className="mcp-harnesses" aria-label="Filter by harness">
           <button
             aria-pressed={harness === null}
