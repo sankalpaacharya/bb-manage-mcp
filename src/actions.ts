@@ -197,17 +197,36 @@ export class AuthJobs {
       if (this.jobs.size >= 20 && job.value.state !== "waiting")
         this.jobs.delete(id);
     const id = randomUUID();
-    const child = spawn(binaries[server.harness], args, {
-      cwd: server.project ?? homedir(),
-      stdio: ["ignore", "pipe", "pipe"],
-      detached: process.platform !== "win32",
-      env: { ...process.env, NO_COLOR: "1" },
-    });
+    // Claude's OAuth fallback requires a TTY even when a browser is launched.
+    // util-linux script supplies one while preserving bounded output and cancellation.
+    const terminal = process.platform === "linux";
+    const child = spawn(
+      terminal ? "script" : binaries[server.harness],
+      terminal
+        ? ["--quiet", "--return", "--command", command, "/dev/null"]
+        : args,
+      {
+        cwd: server.project ?? homedir(),
+        stdio: ["pipe", "pipe", "pipe"],
+        detached: process.platform !== "win32",
+        // Native OAuth owns the localhost callback. Override inherited IDE browser
+        // launchers so the harness opens the host desktop's default browser.
+        env: {
+          ...process.env,
+          NO_COLOR: "1",
+          ...(process.platform === "linux"
+            ? { BROWSER: "xdg-open" }
+            : process.platform === "darwin"
+              ? { BROWSER: "open" }
+              : {}),
+        },
+      },
+    );
     const job: Job = {
       serverId: server.id,
       child,
       value: {
-        ...result("waiting", "Complete sign-in in your browser."),
+        ...result("waiting", "Complete sign-in in your default browser."),
         taskId: id,
         command,
       },

@@ -28,7 +28,7 @@ bb manage-mcp list --json
 
 | Harness     | User configuration                                                                              | Project configuration   |
 | ----------- | ----------------------------------------------------------------------------------------------- | ----------------------- |
-| Claude Code | `~/.claude.json`, including its `projects` entries                                              | `.mcp.json`             |
+| Claude Code | `~/.claude.json` (or `$CLAUDE_CONFIG_DIR/.claude.json`), including its `projects` entries       | `.mcp.json`             |
 | Codex       | `$CODEX_HOME/config.toml`, default `~/.codex/config.toml`                                       | `.codex/config.toml`    |
 | Gemini CLI  | `~/.gemini/settings.json`                                                                       | `.gemini/settings.json` |
 | OpenCode    | `$XDG_CONFIG_HOME/opencode/opencode.json{,c}`, default `~/.config`; absolute `$OPENCODE_CONFIG` | `opencode.json{,c}`     |
@@ -45,7 +45,7 @@ Configuration references: [Claude Code](https://code.claude.com/docs/en/mcp), [C
 - Inventory scans never launch processes or edit files. Automatic and manual status checks and explicit sign-in actions run the installed harness CLI on the selected host; the harness may launch configured MCP processes or save credentials. Raw CLI output is never returned.
 - Reads at most 1 MiB per file and returns at most 250 entries with a truncation notice. Missing files are normal; unreadable or malformed files appear as scan issues.
 - Each declaration has its own row. Native CLI actions resolve the effective server name in the project directory (or host home), so harness precedence applies to duplicate names.
-- Excludes plugin-bundled servers, cloud connectors, enterprise-managed settings, custom Claude configuration directories, runtime flags, and inline configuration. Project scanning uses the explicitly listed folders, without recursive discovery or parent traversal.
+- Excludes plugin-bundled servers, cloud connectors, enterprise-managed settings, runtime flags, and inline configuration. Project scanning uses the explicitly listed folders, without recursive discovery or parent traversal.
 
 ## Status and sign-in
 
@@ -55,7 +55,7 @@ Configuration references: [Claude Code](https://code.claude.com/docs/en/mcp), [C
 - Gemini CLI and Cursor: the row provides a native sign-in command; connection status must be checked in the harness.
 - Local process credentials are managed in the harness; the plugin does not assume browser OAuth support.
 
-The harness CLI must be on the BB host worker's PATH. Sign-in can open a browser on that host; a detected OAuth authorization link is also shown in BB. If the CLI requires terminal input, run the displayed command in the appropriate project directory. Sign-in jobs can be cancelled, time out after five minutes, and are stopped on plugin disposal. Status checks time out after twenty seconds. No credentials are collected by this plugin.
+The harness CLI must be on the BB host worker's PATH. Linux browser sign-in also requires util-linux `script` to provide an interactive terminal. Sign-in can open a browser on that host; the system default browser is used instead of BB’s embedded browser. If the CLI requires terminal input, run the displayed command in the appropriate project directory. Sign-in jobs can be cancelled, time out after five minutes, and are stopped on plugin disposal. Status checks time out after twenty seconds. No credentials are collected by this plugin.
 
 ## Development
 
@@ -79,3 +79,9 @@ Run `npm run preview` and open `dist/preview.html` for a self-contained, interac
 Opening the page only reads cached inventory and status. Pending background results are polled without launching new CLI checks. The cache lasts until BB restarts or the plugin reloads; Refresh rescans with current settings.
 
 Status refresh runs one native list command per harness/project context, sharing the result across its servers. Claude uses `claude mcp list`; Codex uses `codex mcp list --json`. Configuration is displayed before health checks finish; unreachable servers can still delay a harness response.
+
+## Remove a connection
+
+Use the trash icon beside Reconnect and confirm the displayed source and project. Only that declaration is removed; other scopes and harnesses stay intact. A private `.backup-<id>` copy is saved beside the configuration before the update. JSON/JSONC edits preserve surrounding comments; Codex TOML is reserialized and may lose comments/formatting. Symlink configurations are not edited. Removal does not revoke OAuth credentials; restart an existing harness session if it still shows the server.
+
+Configuration locations are checked against [Claude's scope documentation](https://code.claude.com/docs/en/mcp-quickstart#find-your-configuration-on-disk) and [OpenAI's MCP documentation](https://developers.openai.com/codex/mcp).

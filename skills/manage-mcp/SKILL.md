@@ -14,3 +14,5 @@ Only named configuration files are scanned. Plugin-bundled MCPs, cloud connector
 Opening the page only reads cached inventory and status. Pending background results are polled without launching new CLI checks. The cache lasts until BB restarts or the plugin reloads; Refresh rescans with current settings.
 
 Status refresh runs one native list command per harness/project context, sharing the result across its servers. Claude uses `claude mcp list`; Codex uses `codex mcp list --json`. Configuration is displayed before health checks finish; unreachable servers can still delay a harness response.
+
+The row trash action removes only the selected source declaration after confirmation, with a private backup beside the file. It does not revoke OAuth tokens. Codex TOML is reserialized; JSONC edits preserve surrounding comments. Claude scans respect CLAUDE_CONFIG_DIR. Reconnect uses the host system browser; Linux provides a TTY through util-linux script.

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
 import type { ConnectionCheck } from "./status-cache";
@@ -6,7 +6,7 @@ import { ServerIcon } from "./server-icon";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
-  openUrl?: (url: string) => boolean;
+  remove?: (id: string) => Promise<void>;
   authenticate: (id: string) => Promise<ActionResult>;
   poll: (id: string) => Promise<ActionResult>;
   cancel: (id: string) => Promise<ActionResult>;
@@ -23,7 +23,7 @@ function ServerRow({
   connection?: ConnectionCheck;
 }) {
   const status = connection?.result;
-  const openedUrl = useRef<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [auth, setAuth] = useState<ActionResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +51,6 @@ function ServerRow({
       clearTimeout(timer);
     };
   }, [actions, auth?.taskId, auth?.state]);
-  useEffect(() => {
-    if (auth?.url && openedUrl.current !== auth.url && actions?.openUrl) {
-      if (actions.openUrl(auth.url)) openedUrl.current = auth.url;
-    }
-  }, [auth?.url, actions]);
   const run = async () => {
     if (!actions) return;
     setBusy(true);
@@ -68,6 +63,19 @@ function ServerRow({
       );
     } catch {
       setError("Action failed. Check your host connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!actions?.remove) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await actions.remove(server.id);
+      setConfirmDelete(false);
+    } catch {
+      setError("Could not remove this connection. Refresh and try again.");
     } finally {
       setBusy(false);
     }
@@ -125,15 +133,49 @@ function ServerRow({
               ? "Cancel sign-in"
               : "Reconnect"}
         </button>
+        <button
+          className="mcp-delete"
+          aria-label={`Delete ${server.name}`}
+          disabled={!actions?.remove || busy || auth?.state === "waiting"}
+          onClick={() => setConfirmDelete(true)}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+          >
+            <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7" />
+          </svg>
+        </button>
       </div>
+      {confirmDelete && (
+        <div
+          className="mcp-message"
+          role="group"
+          aria-label={`Confirm deletion of ${server.name}`}
+        >
+          <span>
+            Remove {server.name} from {server.harness}? A backup will be saved.
+            <code>
+              {server.source}
+              {server.project ? ` · ${server.project}` : ""}
+            </code>
+          </span>
+          <button disabled={busy} onClick={() => void remove()}>
+            Delete connection
+          </button>
+          <button disabled={busy} onClick={() => setConfirmDelete(false)}>
+            Cancel
+          </button>
+        </div>
+      )}
       {(error || auth) && (
         <div className="mcp-message" role="status">
           {error ?? auth?.message}
-          {auth?.url && (
-            <a href={auth.url} target="_blank" rel="noreferrer">
-              Open sign-in page ↗
-            </a>
-          )}
           {auth?.command && auth.state === "manual" && (
             <code>{auth.command}</code>
           )}

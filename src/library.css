@@ -92,7 +92,7 @@
 }
 .mcp-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 120px minmax(160px, 220px) 118px;
+  grid-template-columns: minmax(180px, 1fr) 120px minmax(160px, 220px) 152px;
   gap: 14px;
   align-items: center;
   padding: 7px 8px;
@@ -232,7 +232,7 @@
 
 .mcp-list-heading {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 120px minmax(160px, 220px) 118px;
+  grid-template-columns: minmax(180px, 1fr) 120px minmax(160px, 220px) 152px;
   gap: 14px;
   padding: 8px;
   font-size: 11px;
@@ -300,7 +300,7 @@
 @media (max-width: 850px) {
   .mcp-row,
   .mcp-list-heading {
-    grid-template-columns: minmax(140px, 1fr) 105px minmax(100px, 150px) 92px;
+    grid-template-columns: minmax(140px, 1fr) 105px minmax(100px, 150px) 124px;
     gap: 10px;
   }
   .mcp-list-heading {
@@ -318,7 +318,7 @@
 @media (max-width: 560px) {
   .mcp-row,
   .mcp-list-heading {
-    grid-template-columns: minmax(110px, 1fr) 24px 95px 80px;
+    grid-template-columns: minmax(110px, 1fr) 24px 80px 110px;
     gap: 6px;
   }
   .mcp-row-harness {
@@ -335,4 +335,15 @@
   .mcp-simple main {
     padding: 16px 10px;
   }
+}
+
+.mcp-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground) !important;
+  border-color: transparent !important;
+}
+.mcp-delete:hover:not(:disabled) {
+  color: var(--destructive, var(--foreground)) !important;
 }

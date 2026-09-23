@@ -56,6 +56,7 @@ const hostTarget = target.extend({
 });
 const task = z.object({ taskId: z.string().uuid() }).strict();
 export const hostContract = defineRpcContract({
+  remove: { input: hostTarget, output: z.null() },
   checkMany: {
     input: z
       .object({
@@ -86,6 +87,7 @@ const snapshot = z.object({
   error: z.string().nullable(),
 });
 export const rpcContract = defineRpcContract({
+  remove: { input: target, output: z.null() },
   snapshot: { input: z.null(), output: snapshot },
   refresh: { input: z.null(), output: snapshot },
   check: { input: target, output: action },

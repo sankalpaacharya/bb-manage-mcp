@@ -22,7 +22,16 @@ export class StatusCache {
   snapshot(): Snapshot {
     return structuredClone(this.value);
   }
+  remove(id: string) {
+    if (this.value.inventory)
+      this.value.inventory.servers = this.value.inventory.servers.filter(
+        (server) => server.id !== id,
+      );
+    delete this.value.checks[id];
+  }
   update(id: string, result: ActionResult) {
+    if (!this.value.inventory?.servers.some((server) => server.id === id))
+      return;
     this.value.checks[id] = { pending: false, result };
   }
   refresh(

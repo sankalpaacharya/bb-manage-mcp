@@ -2,6 +2,7 @@ import { experimental_defineHostEntry } from "@get-bb/plugin-sdk";
 import { hostContract } from "./src/contract";
 import { scanInventory } from "./src/inventory";
 import { AuthJobs, checkServer, checkServers } from "./src/actions";
+import { removeServer } from "./src/remove-server";
 const jobs = new AuthJobs();
 async function target(
   input: { projects: string[]; serverId: string },
@@ -23,6 +24,16 @@ export default experimental_defineHostEntry({
   contract: hostContract,
   dispose: () => jobs.dispose(),
   handlers: {
+    remove: async ({ projects, serverId }, context) => {
+      const inventory = await scanInventory({
+        projects,
+        signal: context.signal,
+      });
+      const server = inventory.servers.find((entry) => entry.id === serverId);
+      if (!server) throw new Error("Entry no longer exists");
+      await removeServer(server);
+      return null;
+    },
     checkMany: async ({ projects, serverIds }, context) => {
       const inventory = await scanInventory({
         projects,

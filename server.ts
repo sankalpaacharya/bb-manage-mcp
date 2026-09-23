@@ -84,6 +84,12 @@ export default function plugin(bb: BbPluginApi) {
   // Start outside the page lifecycle; reads of the cache never launch checks.
   refreshCache();
   bb.rpc.register(rpcContract, {
+    remove: async ({ serverId }) => {
+      const { hostId, projects } = await target();
+      await host.call("remove", { serverId, projects }, { hostId });
+      cache.remove(serverId);
+      return null;
+    },
     snapshot: () => cache.snapshot(),
     refresh: async () => {
       await refreshCache();

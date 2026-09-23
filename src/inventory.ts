@@ -37,7 +37,7 @@ export function configSources(
       });
     }
   }
-  add("Claude Code", join(home, ".claude.json"));
+  add("Claude Code", join(env.CLAUDE_CONFIG_DIR || home, ".claude.json"));
   add("Codex", join(env.CODEX_HOME || join(home, ".codex"), "config.toml"));
   add("Gemini CLI", join(home, ".gemini/settings.json"));
   add("Cursor", join(home, ".cursor/mcp.json"));
