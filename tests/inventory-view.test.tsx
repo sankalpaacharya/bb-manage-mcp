@@ -62,10 +62,14 @@ test("plain list filters by harness and offers re-authentication", async () => {
   };
   let refreshed = 0;
   let removed = 0;
+  let savedTags: string[] = [];
   try {
     const view = render(
       <InventoryView
         actions={{
+          saveTags: async (_id, tags) => {
+            savedTags = tags;
+          },
           remove: async () => {
             removed++;
           },
@@ -95,8 +99,15 @@ test("plain list filters by harness and offers re-authentication", async () => {
       within(view.getByRole("region", { name: "MCP servers" }));
     assert.equal(servers().getAllByRole("listitem").length, 2);
     const row = within(servers().getByText("docs").closest("li")!);
-    assert.equal(row.getAllByRole("button").length, 2);
+    assert.equal(row.getAllByRole("button").length, 3);
     assert.ok(row.getByText("Not checked"));
+    fireEvent.click(row.getByRole("button", { name: "Edit tags for docs" }));
+    fireEvent.change(row.getByRole("textbox", { name: "Tags for docs" }), {
+      target: { value: "Work, tools" },
+    });
+    fireEvent.click(row.getByRole("button", { name: "Save tags" }));
+    await waitFor(() => assert.deepEqual(savedTags, ["tools", "work"]));
+    await waitFor(() => assert.equal(row.queryByRole("textbox"), null));
     assert.equal(view.queryByRole("button", { name: "Check status" }), null);
     fireEvent.click(row.getByRole("button", { name: "Delete docs" }));
     assert.equal(removed, 0);
@@ -125,6 +136,34 @@ test("plain list filters by harness and offers re-authentication", async () => {
     );
     fireEvent.click(view.getByRole("button", { name: "Refresh" }));
     assert.equal(refreshed, 1);
+    const tagged = {
+      ...data,
+      servers: [
+        ...data.servers,
+        { ...data.servers[0], id: "3", project: "/work/other" },
+      ],
+    };
+    view.rerender(
+      <InventoryView
+        inventory={tagged}
+        pending={false}
+        error={null}
+        onRefresh={() => {}}
+        tags={{ "1": ["work"], "3": ["work"], "2": ["personal"] }}
+      />,
+    );
+    assert.equal(
+      servers().getAllByRole("listitem").length,
+      2,
+      "same-name projects share a row",
+    );
+    assert.ok(view.getByRole("combobox", { name: "Configuration for docs" }));
+    fireEvent.click(view.getByRole("checkbox", { name: "Group by tag" }));
+    assert.ok(view.getByRole("heading", { name: "work 1" }));
+    fireEvent.change(view.getByRole("combobox", { name: "Tag" }), {
+      target: { value: "tag:work" },
+    });
+    assert.equal(servers().getAllByRole("listitem").length, 1);
     view.rerender(
       <InventoryView
         inventory={data}

@@ -3,9 +3,11 @@ import { HARNESSES, type Harness, type Inventory, type Server } from "./model";
 import type { ActionResult } from "./actions";
 import type { ConnectionCheck } from "./status-cache";
 import { ServerIcon } from "./server-icon";
+import { groupByTag, mergeConnections, tagListSchema, type Tags } from "./tags";
 import { HarnessIcon } from "./harness-icons";
 
 export interface Actions {
+  saveTags?: (id: string, tags: string[]) => Promise<void>;
   remove?: (id: string) => Promise<void>;
   authenticate: (id: string) => Promise<ActionResult>;
   poll: (id: string) => Promise<ActionResult>;
@@ -16,12 +18,44 @@ function ServerRow({
   actions,
   hidden,
   connection,
+  tags = [],
+  variants = [],
+  selectedId,
+  onSelect,
 }: {
   server: Server;
   actions?: Actions;
   hidden: boolean;
   connection?: ConnectionCheck;
+  tags?: string[];
+  variants?: Server[];
+  selectedId?: string;
+  onSelect?: (id: string) => void;
 }) {
+  const [editingTags, setEditingTags] = useState(false);
+  const [tagDraft, setTagDraft] = useState("");
+  const saveTags = async () => {
+    const parsed = tagListSchema.safeParse(
+      tagDraft
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    );
+    if (!parsed.success) {
+      setError("Use up to 8 tags, with at most 32 characters each.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await actions?.saveTags?.(server.id, parsed.data);
+      setEditingTags(false);
+    } catch {
+      setError("Could not save tags. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const status = connection?.result;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [auth, setAuth] = useState<ActionResult | null>(null);
@@ -50,7 +84,7 @@ function ServerRow({
       stopped = true;
       clearTimeout(timer);
     };
-  }, [actions, auth?.taskId, auth?.state]);
+  }, [actions?.poll, auth?.taskId, auth?.state]);
   const run = async () => {
     if (!actions) return;
     setBusy(true);
@@ -80,19 +114,38 @@ function ServerRow({
       setBusy(false);
     }
   };
-  const unavailable = server.state !== "configured" || !actions;
+  const needsScope = variants.length > 1 && !selectedId;
+  const unavailable = server.state !== "configured" || !actions || needsScope;
   return (
     <li className="mcp-row" hidden={hidden}>
       <div className="mcp-identity">
         <ServerIcon name={server.name} />
         <div className="mcp-name">
           <strong>{server.name}</strong>
-          <span className="mcp-scope">
-            {server.project
-              ? server.project.split("/").filter(Boolean).at(-1)
-              : "User"}
-          </span>
+          {variants.length > 1 && (
+            <select
+              className="mcp-scope-select"
+              aria-label={`Configuration for ${server.name}`}
+              value={selectedId ?? ""}
+              onChange={(event) => onSelect?.(event.target.value)}
+            >
+              <option value="">{variants.length} configurations</option>
+              {variants.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.project ?? "User-wide"} ·{" "}
+                  {entry.source.endsWith("/.mcp.json") ? "shared" : "private"}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
+        {tags.length > 0 && (
+          <span className="mcp-row-tags">
+            {tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </span>
+        )}
       </div>
       <span className="mcp-row-harness">
         <HarnessIcon harness={server.harness} />
@@ -113,19 +166,43 @@ function ServerRow({
             ? "Incomplete"
             : connection?.pending
               ? "Checking…"
-              : !status
-                ? "Not checked"
-                : status.state === "connected"
-                  ? "Connected"
-                  : status.state === "credentials"
-                    ? "Credentials saved"
-                    : status.state === "auth-required"
-                      ? "Sign-in required"
-                      : status.state === "failed"
-                        ? "Not connected"
-                        : "Unverified"}
+              : needsScope
+                ? "Select configuration"
+                : !status
+                  ? "Not checked"
+                  : status.state === "connected"
+                    ? "Connected"
+                    : status.state === "credentials"
+                      ? "Credentials saved"
+                      : status.state === "auth-required"
+                        ? "Sign-in required"
+                        : status.state === "failed"
+                          ? "Not connected"
+                          : "Status unavailable"}
       </span>
       <div className="mcp-actions">
+        <button
+          className="mcp-tag-button"
+          aria-label={`Edit tags for ${server.name}`}
+          disabled={!actions?.saveTags || busy}
+          onClick={() => {
+            setTagDraft(tags.join(", "));
+            setEditingTags(true);
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+          >
+            <path d="M3 3h8l10 10-8 8L3 11Z" />
+            <circle cx="7.5" cy="7.5" r="1" />
+          </svg>
+        </button>
         <button disabled={unavailable || busy} onClick={() => void run()}>
           {busy
             ? "Starting…"
@@ -136,7 +213,9 @@ function ServerRow({
         <button
           className="mcp-delete"
           aria-label={`Delete ${server.name}`}
-          disabled={!actions?.remove || busy || auth?.state === "waiting"}
+          disabled={
+            !actions?.remove || busy || needsScope || auth?.state === "waiting"
+          }
           onClick={() => setConfirmDelete(true)}
         >
           <svg
@@ -152,6 +231,35 @@ function ServerRow({
           </svg>
         </button>
       </div>
+      {editingTags && (
+        <form
+          className="mcp-tag-editor"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveTags();
+          }}
+        >
+          <label>
+            Tags for {server.name}
+            <input
+              autoFocus
+              value={tagDraft}
+              onChange={(event) => setTagDraft(event.target.value)}
+              placeholder="work, development"
+              maxLength={270}
+            />
+          </label>
+          <span>Separate tags with commas</span>
+          <button disabled={busy}>Save tags</button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setEditingTags(false)}
+          >
+            Cancel
+          </button>
+        </form>
+      )}
       {confirmDelete && (
         <div
           className="mcp-message"
@@ -184,6 +292,46 @@ function ServerRow({
     </li>
   );
 }
+function ConnectionRow({
+  variants,
+  checks,
+  tags,
+  actions,
+}: {
+  variants: Server[];
+  checks?: Record<string, ConnectionCheck>;
+  tags: string[];
+  actions?: Actions;
+}) {
+  const [selectedId, setSelectedId] = useState("");
+  const selected = variants.find((entry) => entry.id === selectedId);
+  const server = selected ?? variants[0];
+  const rowActions = actions
+    ? {
+        ...actions,
+        saveTags: actions.saveTags
+          ? async (_id: string, values: string[]) => {
+              await Promise.all(
+                variants.map((entry) => actions.saveTags!(entry.id, values)),
+              );
+            }
+          : undefined,
+      }
+    : undefined;
+  return (
+    <ServerRow
+      key={server.id}
+      server={server}
+      connection={checks?.[server.id]}
+      variants={variants}
+      selectedId={selected?.id}
+      onSelect={setSelectedId}
+      actions={rowActions}
+      tags={tags}
+      hidden={false}
+    />
+  );
+}
 export function InventoryView({
   inventory,
   pending,
@@ -191,7 +339,9 @@ export function InventoryView({
   onRefresh,
   actions,
   cachedChecks,
+  tags = {},
 }: {
+  tags?: Tags;
   cachedChecks?: Record<string, ConnectionCheck>;
   inventory: Inventory | null;
   pending: boolean;
@@ -200,10 +350,31 @@ export function InventoryView({
   actions?: Actions;
 }) {
   const [harness, setHarness] = useState<Harness | null>(null);
-  const entries = inventory?.servers ?? [];
-  const visible = entries.filter(
-    (entry) => !harness || entry.harness === harness,
+  const [grouped, setGrouped] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  const variants = mergeConnections(inventory?.servers ?? []);
+  const entries = variants.map((group) => group[0]);
+  const combinedTags: Tags = Object.fromEntries(
+    variants.map((group) => [
+      group[0].id,
+      [...new Set(group.flatMap((entry) => tags[entry.id] ?? []))].sort(),
+    ]),
   );
+  const visible = entries.filter(
+    (entry) =>
+      (!harness || entry.harness === harness) &&
+      (tagFilter === "all" ||
+        (tagFilter === "untagged" && !combinedTags[entry.id]?.length) ||
+        combinedTags[entry.id]?.includes(tagFilter.slice(4))),
+  );
+  const tagNames = [...new Set(Object.values(tags).flat())].sort();
+  const sorted = [...visible].sort(
+    (a, b) =>
+      a.name.localeCompare(b.name) || a.harness.localeCompare(b.harness),
+  );
+  const groups = grouped
+    ? groupByTag(sorted, combinedTags)
+    : [{ name: null, servers: sorted }];
   const issues =
     inventory?.sources.filter((source) => source.status === "error") ?? [];
   return (
@@ -226,7 +397,6 @@ export function InventoryView({
             <span className="mcp-count">
               {inventory ? entries.length : "—"}
             </span>
-            <small>configured connections</small>
           </button>
           {HARNESSES.map((name) => (
             <button
@@ -243,10 +413,34 @@ export function InventoryView({
                   ? entries.filter((entry) => entry.harness === name).length
                   : "—"}
               </span>
-              <small>configured connections</small>
             </button>
           ))}
         </nav>
+        <div className="mcp-tag-toolbar">
+          <label>
+            Tag{" "}
+            <select
+              value={tagFilter}
+              onChange={(event) => setTagFilter(event.target.value)}
+            >
+              <option value="all">All tags</option>
+              <option value="untagged">Untagged</option>
+              {tagNames.map((tag) => (
+                <option key={tag} value={`tag:${tag}`}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mcp-group-toggle">
+            <input
+              type="checkbox"
+              checked={grouped}
+              onChange={(event) => setGrouped(event.target.checked)}
+            />
+            Group by tag
+          </label>
+        </div>
         {error && <p role="alert">{error}</p>}
         <section aria-label="MCP servers" aria-busy={pending}>
           {!inventory ? (
@@ -263,28 +457,34 @@ export function InventoryView({
                 <span>Status</span>
                 <span />
               </div>
-              <ul className="mcp-list">
-                {[...entries]
-                  .sort(
-                    (a, b) =>
-                      a.name.localeCompare(b.name) ||
-                      a.harness.localeCompare(b.harness),
-                  )
-                  .map((server) => (
-                    <ServerRow
-                      key={server.id}
-                      server={server}
-                      connection={cachedChecks?.[server.id]}
-                      actions={actions}
-                      hidden={!!harness && harness !== server.harness}
-                    />
-                  ))}
-              </ul>
+              {groups.map((group) => (
+                <div key={grouped ? JSON.stringify(group.name) : "all"}>
+                  {grouped && (
+                    <h2 className="mcp-group-heading">
+                      {group.name ?? "Untagged"}{" "}
+                      <span>{group.servers.length}</span>
+                    </h2>
+                  )}
+                  <ul className="mcp-list">
+                    {group.servers.map((server) => (
+                      <ConnectionRow
+                        key={server.id}
+                        variants={variants.find(
+                          (group) => group[0].id === server.id,
+                        )!}
+                        tags={combinedTags[server.id] ?? []}
+                        checks={cachedChecks}
+                        actions={actions}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
               {!visible.length && (
                 <p className="mcp-empty">
-                  No MCP connections {harness ? `in ${harness}` : "found"}. Add
-                  project folders in Manage MCP settings to include project
-                  configurations.
+                  {entries.length
+                    ? "No connections match these filters."
+                    : "No MCP connections found. Add project folders in settings to include project configurations."}
                 </p>
               )}
             </>
@@ -301,8 +501,10 @@ export function InventoryView({
           <p className="mcp-note">Showing the first 250 configurations.</p>
         )}
         <footer>
-          Counts include configured and disabled MCPs. Status is checked on
-          request.
+          Counts show unique names per harness, including disabled MCPs.{" "}
+          {grouped
+            ? "Connections with multiple tags appear in each group."
+            : "Status is cached from background checks."}
         </footer>
       </main>
     </div>
