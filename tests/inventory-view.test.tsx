@@ -176,10 +176,22 @@ test("plain list filters by harness and offers re-authentication", async () => {
     assert.ok(view.getByRole("combobox", { name: "Configuration for docs" }));
     fireEvent.click(view.getByRole("checkbox", { name: "Group by tag" }));
     assert.ok(view.getByRole("heading", { name: "work 1" }));
-    fireEvent.change(view.getByRole("combobox", { name: "Tag" }), {
-      target: { value: "tag:work" },
-    });
+    const tagFilters = within(
+      view.getByRole("navigation", { name: "Filter by tag" }),
+    );
+    assert.ok(tagFilters.getByRole("button", { name: "all 2" }));
+    fireEvent.click(tagFilters.getByRole("button", { name: "work 1" }));
+    assert.equal(
+      tagFilters
+        .getByRole("button", { name: "work 1" })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
     assert.equal(servers().getAllByRole("listitem").length, 1);
+    fireEvent.click(tagFilters.getByRole("button", { name: "work 1" }));
+    assert.equal(servers().getAllByRole("listitem").length, 2);
+    fireEvent.click(tagFilters.getByRole("button", { name: "untagged 0" }));
+    assert.ok(servers().getByText("No connections match these filters."));
     view.rerender(
       <InventoryView
         inventory={data}

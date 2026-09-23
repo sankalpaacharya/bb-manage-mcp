@@ -476,3 +476,36 @@
   padding: 7px 9px;
   font: inherit;
 }
+
+.mcp-tag-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -2px 0 18px;
+  color: var(--muted-foreground);
+}
+.mcp-tag-filters > svg {
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.mcp-tag-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.mcp-tag-filters button span {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.mcp-tag-filters button[aria-pressed="true"] {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--muted-foreground);
+}
+.mcp-row-tags > span {
+  border-radius: 999px;
+}

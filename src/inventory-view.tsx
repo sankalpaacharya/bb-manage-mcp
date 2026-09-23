@@ -302,16 +302,19 @@ export function InventoryView({
       [...new Set(group.flatMap((entry) => tags[entry.id] ?? []))].sort(),
     ]),
   );
-  const visible = entries.filter(
+  const matching = entries.filter(
     (entry) =>
       [entry.name, entry.harness, ...(combinedTags[entry.id] ?? [])]
         .join(" ")
         .toLocaleLowerCase()
         .includes(search.trim().toLocaleLowerCase()) &&
-      (!harness || entry.harness === harness) &&
-      (tagFilter === "all" ||
-        (tagFilter === "untagged" && !combinedTags[entry.id]?.length) ||
-        combinedTags[entry.id]?.includes(tagFilter.slice(4))),
+      (!harness || entry.harness === harness),
+  );
+  const visible = matching.filter(
+    (entry) =>
+      tagFilter === "all" ||
+      (tagFilter === "untagged" && !combinedTags[entry.id]?.length) ||
+      combinedTags[entry.id]?.includes(tagFilter.slice(4)),
   );
   const tagNames = [...new Set(Object.values(tags).flat())].sort();
   const sorted = [...visible].sort(
@@ -371,21 +374,6 @@ export function InventoryView({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-          <label>
-            Tag{" "}
-            <select
-              value={tagFilter}
-              onChange={(event) => setTagFilter(event.target.value)}
-            >
-              <option value="all">All tags</option>
-              <option value="untagged">Untagged</option>
-              {tagNames.map((tag) => (
-                <option key={tag} value={`tag:${tag}`}>
-                  {tag}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="mcp-group-toggle">
             <input
               type="checkbox"
@@ -395,6 +383,45 @@ export function InventoryView({
             Group by tag
           </label>
         </div>
+        <nav className="mcp-tag-filters" aria-label="Filter by tag">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+          >
+            <path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+          </svg>
+          {[
+            { value: "all", label: "all", count: matching.length },
+            ...tagNames.map((tag) => ({
+              value: `tag:${tag}`,
+              label: tag,
+              count: matching.filter((entry) =>
+                combinedTags[entry.id]?.includes(tag),
+              ).length,
+            })),
+            {
+              value: "untagged",
+              label: "untagged",
+              count: matching.filter((entry) => !combinedTags[entry.id]?.length)
+                .length,
+            },
+          ].map((tag) => (
+            <button
+              key={tag.value}
+              aria-pressed={tagFilter === tag.value}
+              onClick={() =>
+                setTagFilter(tagFilter === tag.value ? "all" : tag.value)
+              }
+            >
+              {tag.label} <span>{tag.count}</span>
+            </button>
+          ))}
+        </nav>
         {error && <p role="alert">{error}</p>}
         <section aria-label="MCP servers" aria-busy={pending}>
           {!inventory ? (

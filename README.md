@@ -88,7 +88,7 @@ Configuration locations are checked against [Claude's scope documentation](https
 
 ## Tags and grouping
 
-Use the tag icon on a row to open a quick picker. Click an existing tag to add or remove it, or type a new tag and press Enter. Changes save immediately (up to eight tags, 32 characters each). Tags are saved in BB plugin storage, separately from MCP configuration. Tagging a combined row applies those tags to its existing configurations. Use the Tag filter and Group by tag checkbox to organize the list. A connection with multiple tags appears in each group; untagged connections have their own group. Newly added configurations start untagged.
+Use the tag icon on a row to open a quick picker. Click an existing tag to add or remove it, or type a new tag and press Enter. Changes save immediately (up to eight tags, 32 characters each). Tags are saved in BB plugin storage, separately from MCP configuration. Tagging a combined row applies those tags to its existing configurations. Use the tag chips below search (with matching connection counts) and Group by tag checkbox to organize the list. A connection with multiple tags appears in each group; untagged connections have their own group. Newly added configurations start untagged.
 
 ## Finding connections
 

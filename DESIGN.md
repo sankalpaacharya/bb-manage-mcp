@@ -15,3 +15,5 @@ Status refresh runs one native list command per harness/project context, sharing
 User tags are editable through an anchored picker with instant saves and persist in BB storage. Filtering and grouping by tag compose with the harness filter. Multiple tags place a connection in each matching group.
 
 Search composes with tag and harness filters without a network request.
+
+Tags appear as compact pill filters with counts below search and as small pills on rows. Counts reflect search and harness filters, count combined rows once, and ignore the active tag filter. Clicking the selected tag returns to all connections.
