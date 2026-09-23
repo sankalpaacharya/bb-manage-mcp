@@ -11,7 +11,7 @@ const empty = {
 test("RPC and CLI use the selected host and fresh project settings", async () => {
   let calls = 0;
   const { bb, harness } = createFakePluginHost({
-    pluginId: "manage-mcp",
+    pluginId: "mcp-manager",
     settings: { hostId: "host-test", projectPaths: "/work/one\n/work/two" },
     experimental_callHostRpc: async ({ input, hostId }) => {
       calls++;

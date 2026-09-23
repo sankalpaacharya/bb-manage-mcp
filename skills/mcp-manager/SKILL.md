@@ -1,11 +1,11 @@
 ---
-name: manage-mcp
-description: Inspect configured MCP servers across Claude Code, Codex, Gemini CLI, OpenCode, and Cursor using the Manage MCP BB plugin.
+name: mcp-manager
+description: Inspect configured MCP servers across Claude Code, Codex, Gemini CLI, OpenCode, and Cursor using the MCP Manager BB plugin.
 ---
 
-Run `bb manage-mcp list --json` for inventory metadata, or `bb manage-mcp list` for readable output. The MCP inventory sidebar page provides harness logo/count filters, a plain connection list, and Refresh.
+Run `bb mcp-manager list --json` for inventory metadata, or `bb mcp-manager list` for readable output. The MCP inventory sidebar page provides harness logo/count filters, a plain connection list, and Refresh.
 
-The plugin scans the primary enrolled host by default. Its `hostId` setting selects another enrolled host; `projectPaths` lists up to 20 absolute folders on that host, separated by newlines. Configure these through Manage MCP settings or `bb plugin config manage-mcp`.
+The plugin scans the primary enrolled host by default. Its `hostId` setting selects another enrolled host; `projectPaths` lists up to 20 absolute folders on that host, separated by newlines. Configure these through MCP Manager settings or `bb plugin config mcp-manager`.
 
 Report entries as configured, disabled in configuration, or incomplete. The CLI inventory does not check live status. The UI checks status in the background at BB startup and on explicit refresh, and offers Re-authenticate per row and a page-level Refresh. Claude can report live status; Codex reports saved credentials without proving connectivity. Other harnesses direct users to native status checks. Browser sign-in uses supported Claude, Codex, or OpenCode CLI commands; Gemini and Cursor provide manual guidance. Local process credentials remain harness-managed. Preserve source and project scope when reporting duplicate names. Read errors mean coverage is incomplete; missing source files are normal.
 

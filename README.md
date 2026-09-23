@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/mcp.svg" width="112" alt="Manage MCP logo" />
+  <img src="assets/mcp.svg" width="112" alt="MCP Manager logo" />
 </p>
 
-<h1 align="center">Manage MCP</h1>
+<h1 align="center">MCP Manager</h1>
 
 <p align="center"><strong>Your MCP connections, across harnesses, inside BB.</strong></p>
 
@@ -12,15 +12,15 @@
 </p>
 
 <p align="center">
-  <img src="assets/showcase.png" width="1000" alt="Manage MCP showing harness filters, search, tags, and connection status" />
+  <img src="assets/showcase.png" width="1000" alt="MCP Manager showing harness filters, search, tags, and connection status" />
 </p>
 
-Claude Code, Codex, Gemini CLI, OpenCode, and Cursor each keep their own MCP configuration. Manage MCP brings those connections into one list so you can find them, organize them, and reconnect when needed.
+Claude Code, Codex, Gemini CLI, OpenCode, and Cursor each keep their own MCP configuration. MCP Manager brings those connections into one list so you can find them, organize them, and reconnect when needed.
 
 ## Install
 
 ```sh
-bb plugin install git:https://github.com/sankalpaacharya/bb-manage-mcp.git
+bb plugin install git:https://github.com/sankalpaacharya/bb-mcp-manager.git
 ```
 
 Then open **MCP inventory** in the sidebar. Requires BB 0.43+ and an enrolled host.
@@ -41,8 +41,8 @@ Checks run at startup and on **Refresh**. Claude Code reports connection status;
 ## CLI
 
 ```sh
-bb manage-mcp list
-bb manage-mcp list --json
+bb mcp-manager list
+bb mcp-manager list --json
 ```
 
 Lists configured connections without running live status checks.
@@ -50,7 +50,7 @@ Lists configured connections without running live status checks.
 ## Settings
 
 ```sh
-bb plugin config manage-mcp
+bb plugin config mcp-manager
 ```
 
 | Key            | Default      |

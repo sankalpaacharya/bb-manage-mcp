@@ -1,5 +1,5 @@
 {
-  "name": "bb-plugin-manage-mcp",
+  "name": "bb-plugin-mcp-manager",
   "version": "0.1.0",
   "type": "module",
   "engines": {
@@ -7,7 +7,7 @@
     "bbPluginSdk": ">=0.4.104"
   },
   "bb": {
-    "name": "Manage MCP",
+    "name": "MCP Manager",
     "description": "Inspect MCP server configurations across coding harnesses.",
     "branding": {
       "icon": "./assets/mcp.svg"
@@ -65,6 +65,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sankalpaacharya/bb-manage-mcp.git"
+    "url": "https://github.com/sankalpaacharya/bb-mcp-manager.git"
   }
 }

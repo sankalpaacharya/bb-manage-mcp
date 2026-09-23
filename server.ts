@@ -26,7 +26,7 @@ export default function plugin(bb: BbPluginApi) {
       config.hostId.trim() || (await bb.sdk.system.config()).primaryHostId;
     if (!hostId)
       throw new Error(
-        "No primary host is available. Set Host ID in Manage MCP settings to an enrolled host.",
+        "No primary host is available. Set Host ID in MCP Manager settings to an enrolled host.",
       );
     const projects = config.projectPaths
       .split("\n")
@@ -154,7 +154,7 @@ export default function plugin(bb: BbPluginApi) {
   });
   bb.cli.register(
     defineCli({
-      name: "manage-mcp",
+      name: "mcp-manager",
       summary: "Inspect MCP configurations across harnesses",
       commands: {
         list: cliCommand({

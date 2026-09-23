@@ -40,7 +40,7 @@ test("tags normalize and group without merging different harnesses", () => {
 });
 test("tags persist in plugin storage and reject unknown connections", async () => {
   const { bb, harness } = createFakePluginHost({
-    pluginId: "manage-mcp",
+    pluginId: "mcp-manager",
     settings: { hostId: "host-test", projectPaths: "" },
     experimental_callHostRpc: async () => ({
       scannedAt: "now",
