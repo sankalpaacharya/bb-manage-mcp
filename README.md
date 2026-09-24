@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/mcp.svg" width="112" alt="MCP Manager logo" />
+  <img src="assets/logo.svg" width="112" alt="MCP Manager logo" />
 </p>
 
 <h1 align="center">MCP Manager</h1>
